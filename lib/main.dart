@@ -1,51 +1,34 @@
 import 'package:flutter/material.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
 import 'package:mobile_service_hub/screens/customer_profile.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
-
-
-
 import 'screen/Bookingform.dart';
 import 'screen/NotificationsPage.dart';
 import 'screen/ProviderDetailsPage.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'views/services_page.dart';
-
+import 'package:mobile_service_hub/theme/app_colors.dart';
 void main() {
-  
   debugPrintRebuildDirtyWidgets = false;
-  
-  debugPrintRebuildDirtyWidgets = false;
-
-  runApp(MyApp());
+  runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'create account App',
-      home: CustomerProfilePage(),
-      debugShowCheckedModeBanner: false,
-
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Booking App',
+      title: 'ServiceHub',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.teal,
         fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 0,
+        textTheme: GoogleFonts.poppinsTextTheme(),
+        scaffoldBackgroundColor: Colors.grey[200],
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+          elevation: 4,
           centerTitle: true,
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -68,19 +51,16 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const BookingForm(),
+      home:  LoginScreen(), // Set your desired start page here
     );
   }
 }
-
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
-  
   const BottomNavBar({
     Key? key,
     required this.currentIndex,
   }) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
@@ -109,6 +89,12 @@ class BottomNavBar extends StatelessWidget {
       onTap: (index) {
         if (index != currentIndex) {
           switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) =>  ServicesPage()),
+              );
+              break;
             case 1:
               Navigator.pushReplacement(
                 context,
@@ -130,7 +116,6 @@ class BottomNavBar extends StatelessWidget {
                 'rating': '4.8',
                 'availability': 'Mon-Fri, 9AM-5PM',
               };
-              
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -141,24 +126,6 @@ class BottomNavBar extends StatelessWidget {
           }
         }
       },
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ServiceHub',
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        textTheme: GoogleFonts.poppinsTextTheme(),
-        scaffoldBackgroundColor: Colors.grey[200],
-        appBarTheme: AppBarTheme(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.background,
-          elevation: 4,
-        ),
-      ),
-      home: ServicesPage(),
-
     );
   }
 }

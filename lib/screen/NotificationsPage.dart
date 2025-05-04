@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
-import 'ProviderDetailsPage.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -104,7 +103,6 @@ class NotificationsPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('All notifications marked as read')),
               );
@@ -162,7 +160,6 @@ class NotificationsPage extends StatelessWidget {
   }
 
   Widget _buildNotificationItem(BuildContext context, NotificationItem notification) {
-    
     IconData notificationIcon;
     Color iconBackgroundColor;
 
@@ -192,21 +189,8 @@ class NotificationsPage extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        
-        if (notification.type == NotificationType.provider && notification.providerData != null) {
-        
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProviderDetailsPage(
-                providerData: notification.providerData!,
-              ),
-            ),
-          );
-        } else {
-          
-          _showNotificationDetail(context, notification);
-        }
+        // Show notification details for all types in a popup
+        _showNotificationDetail(context, notification);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -219,7 +203,6 @@ class NotificationsPage extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
             Container(
               width: 40,
               height: 40,
@@ -234,7 +217,6 @@ class NotificationsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,12 +286,10 @@ class NotificationsPage extends StatelessWidget {
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
-          
           height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-             
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -343,14 +323,17 @@ class NotificationsPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               
+              // Build provider details directly in the popup
+              if (notification.type == NotificationType.provider && notification.providerData != null)
+                _buildProviderDetailsView(context, notification.providerData!),
+              
+              // Build booking details in the popup
               if (notification.type == NotificationType.booking && notification.bookingData != null)
                 _buildBookingDetailsCard(context, notification.bookingData!),
               
-              if (notification.type == NotificationType.provider && notification.providerData != null)
-                _buildProviderDetailsCard(context, notification.providerData!),
-              
               const Spacer(),
               
+              // Action buttons
               if (notification.type == NotificationType.booking)
                 SizedBox(
                   width: double.infinity,
@@ -372,19 +355,16 @@ class NotificationsPage extends StatelessWidget {
                   ),
                 ),
               
-              if (notification.type == NotificationType.provider && notification.providerData != null)
+              // Book appointment button for provider notifications
+              if (notification.type == NotificationType.provider)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProviderDetailsPage(
-                            providerData: notification.providerData!,
-                          ),
-                        ),
+                      // Add booking logic here
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Booking initiated')),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -392,7 +372,7 @@ class NotificationsPage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
-                      'View Provider Profile',
+                      'Book Appointment',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -436,32 +416,137 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProviderDetailsCard(BuildContext context, Map<String, String> providerData) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  // New method to build a more detailed provider view directly in the popup
+  Widget _buildProviderDetailsView(BuildContext context, Map<String, String> providerData) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Provider header with avatar
+        Row(
           children: [
-            Text(
-              'Provider Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.person,
+                size: 40,
+                color: Colors.teal,
               ),
             ),
-            const SizedBox(height: 12),
-            _buildInfoRow('Name', providerData['name'] ?? ''),
-            _buildInfoRow('Specialty', providerData['specialty'] ?? ''),
-            _buildInfoRow('Experience', providerData['experience'] ?? ''),
-            _buildInfoRow('Location', providerData['location'] ?? ''),
-            _buildInfoRow('Rating', providerData['rating'] ?? ''),
-            _buildInfoRow('Availability', providerData['availability'] ?? ''),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    providerData['name'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    providerData['specialty'] ?? '',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        providerData['rating'] ?? '',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
+        
+        const SizedBox(height: 24),
+        
+        // Provider information card
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Provider Information',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildInfoRow('Experience', providerData['experience'] ?? ''),
+                _buildInfoRow('Location', providerData['location'] ?? ''),
+                _buildInfoRow('Availability', providerData['availability'] ?? ''),
+                
+                const SizedBox(height: 12),
+                
+                // Additional features for the provider
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildActionButton(Icons.message, 'Message'),
+                    _buildActionButton(Icons.favorite_border, 'Favorite'),
+                    _buildActionButton(Icons.share, 'Share'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildActionButton(IconData icon, String label) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.teal.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: Colors.teal,
+            size: 20,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
     );
   }
 
