@@ -60,36 +60,55 @@ void _sendResetLink() {
               ),
               SizedBox(height: 30),
 
-              Text(
-                'Choose how to receive the reset code:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              Center(
+                child: Text(
+                  'Choose how to receive the reset code:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
               ),
-              RadioListTile(
-                title: Text('Email'),
-                value: 'email',
-                groupValue: _selectedMethod,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedMethod = value.toString();
-                    _contactController.clear();
-                    isButtonEnabled = false;
-                  });
-                },
-              ),
-              RadioListTile(
-                title: Text('SMS'),
-                value: 'sms',
-                groupValue: _selectedMethod,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedMethod = value.toString();
-                    _contactController.clear();
-                    isButtonEnabled = false;
-                  });
-                },
-              ),
+            SizedBox(height: 20),
+        Center(
+          child:   ToggleButtons(
+          
+            isSelected: [_selectedMethod == 'email', _selectedMethod == 'sms'],
+          
+            onPressed: (index) {
+          
+              setState(() {
+          
+                _selectedMethod = index == 0 ? 'email' : 'sms';
+          
+                _contactController.clear();
+          
+                isButtonEnabled = false;
+          
+              });
+          
+            },
+              
+                borderRadius: BorderRadius.circular(8),
+              
+                selectedColor: Colors.white,
+              
+                fillColor: Colors.teal,
+              
+                color: Colors.black,
+              
+                constraints: const BoxConstraints(minHeight: 45, minWidth: 120),
+              
+                children: const [
+              
+                  Text("Email"),
+              
+                  Text("SMS"),
+              
+                ],
+  
+  ),
+),
 
-              SizedBox(height: 10),
+
+              SizedBox(height: 20),
               TextField(
                 controller: _contactController,
                 onChanged: (value) => _updateButtonState(),
@@ -127,7 +146,7 @@ void _sendResetLink() {
                     } else if (states.contains(MaterialState.disabled)) {
                       return Colors.grey.shade400;
                     }
-                    return Colors.green;
+                    return Colors.teal;
                   }),
                 ),
                 onPressed: isButtonEnabled ? _sendResetLink : null,

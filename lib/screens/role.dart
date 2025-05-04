@@ -13,6 +13,7 @@ class RoleSelectionScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(height: 250),
+
             Text(
               "Please select your role",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
