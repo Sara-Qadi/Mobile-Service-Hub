@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'create account App',
-      home: ForgotPasswordScreen(),
+      home: CustomerProfilePage(),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -30,6 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    google_fonts: ^4.0.3
+  image_picker: ^0.8.7+4
+  shared_preferences: ^2.1.0
+
   
 
 
