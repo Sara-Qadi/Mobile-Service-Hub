@@ -146,56 +146,78 @@ class _ViewServicePageState extends State<ViewServicePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: const BorderSide(
-                              color: Colors.white,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        child: const Text(
-                          'Booking Now',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
+                   Align(
+  alignment: Alignment.center, // لمحاذاة الزر لليسار
+  child: ElevatedButton.icon(
+    icon: const Icon(Icons.calendar_today, size: 14), // تصغير الأيقونة
+    label: const Text(
+      'Book Now',
+      style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold), // تصغير النص
+    ),
+    style: ElevatedButton.styleFrom(
+      primary: Colors.teal,
+      minimumSize: const Size(80, 30), // تقليل العرض والارتفاع
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // تقليل التوسيط الداخلي
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(
+          color: Color.fromARGB(255, 255, 255, 255),
+          width: 1.5,
+        ),
+      ),
+    ),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RatingPage(
+            service: service,
+            onRatingSubmitted: _addRating,
+          ),
+        ),
+      );
+    },
+  ),
+),
+
                     const SizedBox(height: 16),
                     _buildDetailCard('Details', service['details'] ?? 'N/A'),
                     _buildDetailCard('Price', '${service['price'] ?? 'N/A'} \$'),
                     const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.star),
-                        label: const Text('Add Rating'),
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors.teal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: const BorderSide(
-                              color: Colors.teal,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RatingPage(
-                                service: service,
-                                onRatingSubmitted: _addRating,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                   Align(
+  alignment: Alignment.centerLeft, // جهة الشمال
+  child: ElevatedButton.icon(
+    icon: const Icon(Icons.star, size: 16), // تصغير الأيقونة
+    label: const Text(
+      'Add Rating',
+      style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold), // تصغير الخط
+    ),
+    style: ElevatedButton.styleFrom(
+      primary: Colors.teal,
+      minimumSize: const Size(100, 35), // تصغير الحجم العام للزر
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // تقليل الهوامش الداخلية
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: const BorderSide(
+          color: Color.fromARGB(255, 255, 255, 255),
+          width: 2,
+        ),
+      ),
+    ),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RatingPage(
+            service: service,
+            onRatingSubmitted: _addRating,
+          ),
+        ),
+      );
+    },
+  ),
+),
+
                     const SizedBox(height: 24),
                     if (service['ratings'].isNotEmpty) ...[
                       Text(
