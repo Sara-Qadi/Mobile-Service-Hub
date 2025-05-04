@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/main.dart';
 
 import 'package:mobile_service_hub/views/services_display_page.dart';
 import 'package:mobile_service_hub/views/services_provider_page.dart';
@@ -68,120 +69,97 @@ class _ServicesPageState extends State<ServicesPage> {
   }
 
   Widget _buildServiceCard(Map<String, dynamic> service) {
-  Uint8List? imageBytes;
-  if (service['imageBytes'] != null && service['imageBytes'] != "") {
-    imageBytes = base64Decode(service['imageBytes']);
-  }
+    Uint8List? imageBytes;
+    if (service['imageBytes'] != null && service['imageBytes'] != "") {
+      imageBytes = base64Decode(service['imageBytes']);
+    }
 
-  return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ViewServicePage(service: service)),
-      );
-    },
-    child: Card(
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              child: imageBytes != null
-                  ? Image.memory(imageBytes, fit: BoxFit.cover)
-                  : Container(
-                      color: Colors.grey[200],
-                      child: Icon(Icons.image, size: 50, color: Colors.teal),
-                    ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              children: [
-                Text(
-                  service['name'],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.teal[800],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _updateService(service),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.edit, color: Colors.teal),
-                          SizedBox(height: 4),
-                          Text(
-                            'edit',
-                            style: TextStyle(
-                                color: Colors.grey[500], fontSize: 12),
-                          ),
-                        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ViewServicePage(service: service)),
+        );
+      },
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                child: imageBytes != null
+                    ? Image.memory(imageBytes, fit: BoxFit.cover)
+                    : Container(
+                        color: Colors.grey[200],
+                        child: Icon(Icons.image, size: 50, color: Colors.teal),
                       ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                children: [
+                  Text(
+                    service['name'],
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.teal[800],
                     ),
-                    GestureDetector(
-                      onTap: () async {
-                        bool confirmDelete = await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text("Delete Service"),
-                            content: Text("Are you sure you want to delete this service?"),
-                            actions: [
-                              TextButton(
-                                child: Text("Cancel"),
-                                onPressed: () => Navigator.of(context).pop(false),
-                              ),
-                              TextButton(
-                                child: Text(
-                                  "Delete",
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                                onPressed: () => Navigator.of(context).pop(true),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirmDelete == true) {
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _updateService(service),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.edit, color: Colors.teal),
+                            SizedBox(height: 4),
+                            Text(
+                              'edit',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
                           setState(() {
                             services.remove(service);
                           });
                           _saveServices();
-                        }
-                      },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.delete, color: Colors.red[400]),
-                          SizedBox(height: 4),
-                          Text(
-                            'delete',
-                            style: TextStyle(
-                                color: Colors.grey[500], fontSize: 12),
-                          ),
-                        ],
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.delete, color: Colors.red[400]),
+                            SizedBox(height: 4),
+                            Text(
+                              'delete',
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildAddServiceCard() {
     return GestureDetector(
@@ -207,7 +185,7 @@ class _ServicesPageState extends State<ServicesPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.add_circle_outline, color: Colors.teal, size: 40),
-                SizedBox(height: 8),
+                SizedBox(height: 8.0,),
                 Text("Add Service",
                     style: TextStyle(
                         color: Colors.teal[700], fontWeight: FontWeight.bold)),
@@ -311,6 +289,7 @@ class _ServicesPageState extends State<ServicesPage> {
           ),
         ],
       ),
+         bottomNavigationBar: const BottomNavBar(currentIndex: 0),
     );
   }
 }
