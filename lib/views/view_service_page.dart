@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'rating_page.dart';
+import '/screens/choose_provider.dart';
+import '../screens/service_repository.dart';
 
 class ViewServicePage extends StatefulWidget {
   final Map<String, dynamic> service;
@@ -21,6 +23,16 @@ class _ViewServicePageState extends State<ViewServicePage> {
     super.initState();
     service = Map<String, dynamic>.from(widget.service);
     service['ratings'] = List<Map<String, dynamic>>.from(service['ratings'] ?? []);
+  }
+
+  void _addRating(Map<String, dynamic> newRating) {
+    setState(() {
+      service['ratings'].add(newRating);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Your rating has been submitted!')),
+    );
   }
 
   Widget _buildImageWidget() {
@@ -43,8 +55,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
             return Center(
               child: CircularProgressIndicator(
                 value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
                     : null,
               ),
             );
@@ -69,24 +80,19 @@ class _ViewServicePageState extends State<ViewServicePage> {
       width: 160,
       height: 160,
       color: Colors.grey[300],
-      child: Center(
+      child: const Center(
         child: Icon(Icons.image, size: 60, color: Colors.teal),
       ),
     );
   }
 
-  void _addRating(Map<String, dynamic> newRating) {
-    setState(() {
-      service['ratings'].add(newRating);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Your rating has been submitted!')),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+  final List<Map<String, dynamic>> allProviders = getAllServices()
+    .where((s) => s['name'] == service['name'])
+    .toList();
+
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -115,9 +121,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,78 +150,78 @@ class _ViewServicePageState extends State<ViewServicePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                   Align(
-  alignment: Alignment.center, // لمحاذاة الزر لليسار
-  child: ElevatedButton.icon(
-    icon: const Icon(Icons.calendar_today, size: 14), // تصغير الأيقونة
-    label: const Text(
-      'Book Now',
-      style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold), // تصغير النص
-    ),
-    style: ElevatedButton.styleFrom(
-      primary: Colors.teal,
-      minimumSize: const Size(80, 30), // تقليل العرض والارتفاع
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // تقليل التوسيط الداخلي
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: const BorderSide(
-          color: Color.fromARGB(255, 255, 255, 255),
-          width: 1.5,
-        ),
-      ),
-    ),
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RatingPage(
-            service: service,
-            onRatingSubmitted: _addRating,
-          ),
-        ),
-      );
-    },
-  ),
-),
+                    Align(
+                      alignment: Alignment.center,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.calendar_today, size: 14),
+                        label: const Text(
+                          'Book Now',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.teal,
+                          minimumSize: const Size(80, 30),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(color: Colors.white, width: 1.5),
+                          ),
+                        ),
+                      onPressed: () async {
+                  final selectedProvider = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChooseProviderPage(
+                        serviceName: service['name'],
+                        allServices: getAllServices(),
+                      ),
+                    ),
+                  );
 
+                  if (selectedProvider != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('You selected: ${selectedProvider['user']}')),
+                    );
+                  }
+                },
+              
+            
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _buildDetailCard('Details', service['details'] ?? 'N/A'),
                     _buildDetailCard('Price', '${service['price'] ?? 'N/A'} \$'),
                     const SizedBox(height: 16),
-                   Align(
-  alignment: Alignment.centerLeft, // جهة الشمال
-  child: ElevatedButton.icon(
-    icon: const Icon(Icons.star, size: 16), // تصغير الأيقونة
-    label: const Text(
-      'Add Rating',
-      style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold), // تصغير الخط
-    ),
-    style: ElevatedButton.styleFrom(
-      primary: Colors.teal,
-      minimumSize: const Size(100, 35), // تصغير الحجم العام للزر
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // تقليل الهوامش الداخلية
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: const BorderSide(
-          color: Color.fromARGB(255, 255, 255, 255),
-          width: 2,
-        ),
-      ),
-    ),
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RatingPage(
-            service: service,
-            onRatingSubmitted: _addRating,
-          ),
-        ),
-      );
-    },
-  ),
-),
-
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.star, size: 16),
+                        label: const Text(
+                          'Add Rating',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.teal,
+                          minimumSize: const Size(100, 35),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            side: const BorderSide(color: Colors.white, width: 2),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RatingPage(
+                                service: service,
+                                onRatingSubmitted: _addRating,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     if (service['ratings'].isNotEmpty) ...[
                       Text(
@@ -270,10 +274,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(25),
-        side: const BorderSide(
-          color: Colors.teal,
-          width: 2,
-        ),
+        side: const BorderSide(color: Colors.teal, width: 2),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -297,9 +298,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
             Row(
               children: List.generate(5, (index) {
                 return Icon(
-                  index < (rating['rating'] ?? 0)
-                      ? Icons.star
-                      : Icons.star_border,
+                  index < (rating['rating'] ?? 0) ? Icons.star : Icons.star_border,
                   color: Colors.amber,
                   size: 20,
                 );
@@ -314,10 +313,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
             if (rating['date'] != null)
               Text(
                 rating['date'].toString(),
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
           ],
         ),

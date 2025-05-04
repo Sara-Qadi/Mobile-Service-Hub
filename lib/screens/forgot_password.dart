@@ -14,7 +14,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
 void _sendResetLink() {
   print('Code sent to ${_contactController.text} via $_selectedMethod');
-  Navigator.pushReplacement(
+  Navigator.push(
     context,
     MaterialPageRoute(
       builder: (context) => VerifyCodeScreen(
@@ -35,6 +35,15 @@ void _sendResetLink() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+       appBar: AppBar(
+        title: Text("Forgot Password"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); 
+          },
+        ),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -42,8 +51,7 @@ void _sendResetLink() {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(height: 120),
-             
-              SizedBox(height: 40),
+      
               Text(
                 'Forgot your password?',
                 style: TextStyle(

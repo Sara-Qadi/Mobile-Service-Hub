@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/main.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
+import 'package:mobile_service_hub/views/services_page.dart';
 
 class ServiceProviderProfile extends StatefulWidget {
   const ServiceProviderProfile({super.key});
@@ -12,8 +13,8 @@ class ServiceProviderProfile extends StatefulWidget {
 
 class ServiceProviderProfileState extends State<ServiceProviderProfile> {
   bool _notificationsEnabled = false;
-    String _username = "Mohammad_5";
-String _phoneNumber = "0597259604";
+  String _username = "Mohammad_5";
+  String _phoneNumber = "0597259604";
 
   void _confirmAction({
     required String title,
@@ -22,117 +23,121 @@ String _phoneNumber = "0597259604";
   }) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text(title),
         content: Text(content),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onConfirm();
-            },
-            child: const Text("Confirm"),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("Cancel", style: TextStyle(color: Colors.grey[700])),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onConfirm();
+                },
+                child: Text("Confirm", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-  
-void _editUsername() {
-  final controller = TextEditingController(text: _username);
-  String? errorText;
 
-  showDialog(
-    context: context,
-    builder: (_) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: const Text("Edit Username"),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: "Enter new username",
-            errorText: errorText,
+  void _editUsername() {
+    final controller = TextEditingController(text: _username);
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Edit Username"),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: "Enter new username",
+              errorText: errorText,
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newUsername = controller.text.trim();
+                if (newUsername.isEmpty) {
+                  setState(() {
+                    errorText = "Username cannot be empty";
+                  });
+                } else {
+                  this.setState(() {
+                    _username = newUsername;
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newUsername = controller.text.trim();
-              if (newUsername.isEmpty) {
-                setState(() {
-                  errorText = "Username cannot be empty";
-                });
-              } else {
-                this.setState(() {
-                  _username = newUsername;
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _editPhoneNumber() {
-  final controller = TextEditingController(text: _phoneNumber);
-  String? errorText;
+    final controller = TextEditingController(text: _phoneNumber);
+    String? errorText;
 
-  showDialog(
-    context: context,
-    builder: (_) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: const Text("Edit Phone Number"),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            hintText: "Enter new phone number",
-            errorText: errorText,
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Edit Phone Number"),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              hintText: "Enter new phone number",
+              errorText: errorText,
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newNumber = controller.text.trim();
+                if (newNumber.isEmpty) {
+                  setState(() {
+                    errorText = "Phone number cannot be empty";
+                  });
+                } else if (newNumber.length < 10 || !RegExp(r'^\d+$').hasMatch(newNumber)) {
+                  setState(() {
+                    errorText = "Enter a valid 10-digit number";
+                  });
+                } else {
+                  this.setState(() {
+                    _phoneNumber = newNumber;
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newNumber = controller.text.trim();
-              if (newNumber.isEmpty) {
-                setState(() {
-                  errorText = "Phone number cannot be empty";
-                });
-              } else if (newNumber.length < 10 || !RegExp(r'^\d+$').hasMatch(newNumber)) {
-                setState(() {
-                  errorText = "Enter a valid 10-digit number";
-                });
-              } else {
-                this.setState(() {
-                  _phoneNumber = newNumber;
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,33 +153,31 @@ void _editUsername() {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-     Center(
-  child: Stack(
-    alignment: Alignment.bottomRight,
-    children: [
-      const CircleAvatar(
-        radius: 70,
-        backgroundImage: AssetImage('assets/images/person1.jpg'),
-      ),
-      Container(
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.black87,
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.edit, color: Colors.white, size: 22),
-          onPressed: () {
-            // todo
-          },
-        ),
-      ),
-    ],
-  ),
-),
-
+            Center(
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  const CircleAvatar(
+                    radius: 70,
+                    backgroundImage: AssetImage('assets/images/person1.jpg'),
+                  ),
+                  Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black87,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.white, size: 22),
+                      onPressed: () {
+                        // todo
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 30),
-
- ListTile(
+            ListTile(
               leading: const Icon(Icons.person, size: 28),
               title: const Text("Username", style: TextStyle(fontSize: 18)),
               trailing: InkWell(
@@ -188,7 +191,7 @@ void _editUsername() {
                 ),
               ),
             ),
- ListTile(
+            ListTile(
               leading: const Icon(Icons.person, size: 28),
               title: const Text("Number", style: TextStyle(fontSize: 18)),
               trailing: InkWell(
@@ -202,8 +205,6 @@ void _editUsername() {
                 ),
               ),
             ),
-
-
             // Notifications Toggle
             SwitchListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -216,33 +217,34 @@ void _editUsername() {
                 });
               },
             ),
-                 ListTile(
-              leading: const Icon(Icons.keyboard_arrow_right, size: 30, color: Colors.black,),
+            ListTile(
+              leading: const Icon(Icons.keyboard_arrow_right, size: 30, color: Colors.black),
               title: const Text("MyServices", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-              // onTap: () {
-              //        Navigator.push(
-              //         context,
-              //         MaterialPageRoute(
-              //           builder: (context) => ResetPasswordScreen(contact: '',),));
-            //  },
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ServicesPage(),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 50),
-
-        
             ListTile(
               leading: const Icon(Icons.lock_reset, size: 28),
               title: const Text("Change Password", style: TextStyle(fontSize: 18)),
               onTap: () {
-                     Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ResetPasswordScreen(contact: '',),));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ResetPasswordScreen(contact: ''),
+                  ),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete_forever, size: 28, color: Colors.red),
-              title: const Text("Delete Account",
-                  style: TextStyle(color: Colors.red, fontSize: 18)),
+              title: const Text("Delete Account", style: TextStyle(color: Colors.red, fontSize: 18)),
               onTap: () {
                 _confirmAction(
                   title: "Delete Account",
@@ -261,18 +263,20 @@ void _editUsername() {
                   title: "Log Out",
                   content: "Are you sure you want to log out?",
                   onConfirm: () {
-                        Navigator.pushReplacement(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => LoginScreen(),));
+                        builder: (context) => LoginScreen(),
+                      ),
+                    );
                   },
                 );
               },
             ),
           ],
         ),
-       ),
-           bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+      ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
     );
   }
 }

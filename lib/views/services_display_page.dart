@@ -20,17 +20,34 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
   @override
   void initState() {
     super.initState();
-    filteredServices = widget.services;
+    filteredServices = _getUniqueServices(widget.services);
     _searchController.addListener(_filterServices);
+  }
+
+  List<Map<String, dynamic>> _getUniqueServices(List<Map<String, dynamic>> services) {
+    final seen = <String>{};
+    final uniqueServices = <Map<String, dynamic>>[];
+
+    for (var service in services) {
+      final name = service['name'];
+      if (name != null && !seen.contains(name)) {
+        seen.add(name);
+        uniqueServices.add(service);
+      }
+    }
+
+    return uniqueServices;
   }
 
   void _filterServices() {
     final query = _searchController.text.toLowerCase();
+    final results = widget.services.where((service) {
+      final name = service['name']?.toString().toLowerCase() ?? '';
+      return name.contains(query);
+    }).toList();
+
     setState(() {
-      filteredServices = widget.services.where((service) {
-        final name = service['name']?.toString().toLowerCase() ?? '';
-        return name.contains(query);
-      }).toList();
+      filteredServices = _getUniqueServices(results);
     });
   }
 
@@ -66,20 +83,28 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
             child: GridView.builder(
               padding: EdgeInsets.all(12),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, 
-                crossAxisSpacing: 12, 
-                mainAxisSpacing: 12, 
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
                 childAspectRatio: 0.8,
               ),
               itemCount: filteredServices.length,
               itemBuilder: (_, index) {
                 final service = filteredServices[index];
-                final imageBytes = base64Decode(service['imageBytes'] ?? '');
+                Uint8List? imageBytes;
+                try {
+                  imageBytes = base64Decode(service['imageBytes'] ?? '');
+                } catch (e) {
+                  imageBytes = null;
+                }
 
                 return GestureDetector(
                   onTap: () {
-                    Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => ViewServicePage(service: service)),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ViewServicePage(service: service),
+                      ),
                     );
                   },
                   child: Card(
@@ -90,7 +115,16 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                            child: Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity),
+                            child: imageBytes != null
+                                ? Image.memory(
+                                    imageBytes,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  )
+                                : Container(
+                                    color: Colors.grey[300],
+                                    child: Icon(Icons.image, size: 50, color: Colors.teal),
+                                  ),
                           ),
                         ),
                         Padding(
