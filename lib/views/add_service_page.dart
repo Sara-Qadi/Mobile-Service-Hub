@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import '../widgets/image_picker_widget.dart';
 import '../widgets/service_form_field.dart';
+import '../screens/service_repository.dart'; 
 
 class AddServicePage extends StatefulWidget {
   @override
@@ -82,7 +83,11 @@ class _AddServicePageState extends State<AddServicePage> {
                         'details': detailsController.text,
                         'price': priceController.text,
                         'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : '',
+                        'ratings': [],
                       };
+
+                      addService(newService); // <-- Save to memory
+
                       Navigator.pop(context, newService);
                     }
                   : null,
@@ -91,7 +96,7 @@ class _AddServicePageState extends State<AddServicePage> {
                 child: Text('Add Service', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isFormValid ? AppColors.primary :AppColors.shadow,
+                backgroundColor: isFormValid ? AppColors.primary : AppColors.shadow,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

@@ -71,38 +71,57 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Verify ${widget.method.toUpperCase()}")),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            SizedBox(height: 140),
-            Text(
-              'Enter the code sent to your ${widget.method}:\n${widget.contact}',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) => _buildDigitBox(index)),
-            ),
-            SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _isCodeComplete ? _verifyCode : null,
-              child: Text('Verify', style: TextStyle(fontSize: 18)),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(title: Text("Verify ${widget.method.toUpperCase()}")),
+    body: Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          SizedBox(height: 140),
+          Text(
+            'Enter the code sent to your ${widget.method}:\n${widget.contact}',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(4, (index) => _buildDigitBox(index)),
+          ),
+          SizedBox(height: 20),
+          TextButton(
+            onPressed: () {
+              // TODO: Add actual resend logic
+              print('Resending code to ${widget.contact}');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Verification code resent')),
+              );
+            },
+            child: Text('Resend Code'),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _isCodeComplete ? _verifyCode : null,
+            child: Text('Verify', style: TextStyle(fontSize: 18)),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: 12),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text('Cancel', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

@@ -55,7 +55,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home:  LoginScreen(), // Set your desired start page here
+      home:  LoginScreen(), // Start Page
     );
   }
 }
