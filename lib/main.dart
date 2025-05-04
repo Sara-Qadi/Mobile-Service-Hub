@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+
+import 'package:mobile_service_hub/screens/login.dart';
+import 'package:mobile_service_hub/screens/forgot_password.dart';
+import 'package:mobile_service_hub/screens/customer_profile.dart';
+import 'package:mobile_service_hub/screens/service_p_profile.dart';
+
+
+
 import 'screen/Bookingform.dart';
 import 'screen/NotificationsPage.dart';
 import 'screen/ProviderDetailsPage.dart';
@@ -16,6 +24,14 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'create account App',
+      home: CustomerProfilePage(),
+      debugShowCheckedModeBanner: false,
+
   const MyApp({super.key});
 
   @override
@@ -142,7 +158,7 @@ class BottomNavBar extends StatelessWidget {
         ),
       ),
       home: ServicesPage(),
- service-hub
+
     );
   }
 }
