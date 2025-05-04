@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/screen/Bookingform.dart';
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 import '../main.dart';
 
 class NotificationsPage extends StatelessWidget {
@@ -6,7 +8,6 @@ class NotificationsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
     final List<NotificationItem> notifications = [
       NotificationItem(
         title: 'New Provider Available',
@@ -23,7 +24,7 @@ class NotificationsPage extends StatelessWidget {
           'availability': 'Mon-Fri, 9AM-5PM',
         },
       ),
-      NotificationItem(
+   NotificationItem(
         title: 'Booking Confirmed',
         message: 'Your booking with Dr. Sarah has been confirmed for tomorrow at 2:00 PM',
         time: '2 hours ago',
@@ -95,10 +96,7 @@ class NotificationsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Notifications',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         actions: [
           TextButton(
@@ -134,25 +132,16 @@ class NotificationsPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_off_outlined,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           const Text(
             'No Notifications',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
             'You don\'t have any notifications at the moment',
-            style: TextStyle(
-              color: Colors.grey,
-            ),
+            style: TextStyle(color: Colors.grey),
           ),
         ],
       ),
@@ -189,15 +178,16 @@ class NotificationsPage extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        // Show notification details for all types in a popup
-        _showNotificationDetail(context, notification);
+        if (notification.type == NotificationType.provider && notification.providerData != null) {
+          _showProviderDetailsPopup(context, notification.providerData!);
+        } else {
+          _showNotificationDetail(context, notification);
+        }
       },
       child: Container(
         decoration: BoxDecoration(
           color: notification.isRead ? Colors.white : Colors.teal.withOpacity(0.05),
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
-          ),
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: Row(
@@ -210,11 +200,7 @@ class NotificationsPage extends StatelessWidget {
                 color: iconBackgroundColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                notificationIcon,
-                color: iconBackgroundColor,
-                size: 20,
-              ),
+              child: Icon(notificationIcon, color: iconBackgroundColor, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -237,20 +223,14 @@ class NotificationsPage extends StatelessWidget {
                       ),
                       Text(
                         notification.time,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      height: 1.3,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade700, height: 1.3),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -276,6 +256,64 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
+  void _showProviderDetailsPopup(BuildContext context, Map<String, String> providerData) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Provider Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildProviderDetailsCard(context, providerData),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+              onPressed: () {
+  Navigator.pop(context); 
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => BookingForm()),
+  );
+},
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'Book Appointment',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showNotificationDetail(BuildContext context, NotificationItem notification) {
     showModalBottomSheet(
       context: context,
@@ -295,10 +333,7 @@ class NotificationsPage extends StatelessWidget {
                 children: [
                   Text(
                     notification.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -309,74 +344,36 @@ class NotificationsPage extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 notification.time,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 20),
               Text(
                 notification.message,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: const TextStyle(fontSize: 16, height: 1.5),
               ),
               const SizedBox(height: 20),
-              
-              // Build provider details directly in the popup
-              if (notification.type == NotificationType.provider && notification.providerData != null)
-                _buildProviderDetailsView(context, notification.providerData!),
-              
-              // Build booking details in the popup
               if (notification.type == NotificationType.booking && notification.bookingData != null)
                 _buildBookingDetailsCard(context, notification.bookingData!),
-              
               const Spacer(),
-              
-              // Action buttons
               if (notification.type == NotificationType.booking)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                onPressed: () {
+  Navigator.pop(context);
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => BookingTimesTableView(bookingData: {},)),
+  );
+},
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'View Full Booking Details',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              
-              // Book appointment button for provider notifications
-              if (notification.type == NotificationType.provider)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // Add booking logic here
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Booking initiated')),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text(
-                      'Book Appointment',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -387,11 +384,41 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildProviderDetailsCard(BuildContext context, Map<String, String> providerData) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Provider Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow('Name', providerData['name'] ?? ''),
+            _buildInfoRow('Specialty', providerData['specialty'] ?? ''),
+            _buildInfoRow('Experience', providerData['experience'] ?? ''),
+            _buildInfoRow('Location', providerData['location'] ?? ''),
+            _buildInfoRow('Rating', providerData['rating'] ?? ''),
+            _buildInfoRow('Availability', providerData['availability'] ?? ''),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBookingDetailsCard(BuildContext context, Map<String, String> bookingData) {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -416,151 +443,12 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  // New method to build a more detailed provider view directly in the popup
-  Widget _buildProviderDetailsView(BuildContext context, Map<String, String> providerData) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Provider header with avatar
-        Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person,
-                size: 40,
-                color: Colors.teal,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    providerData['name'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    providerData['specialty'] ?? '',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star,
-                        color: Colors.amber,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        providerData['rating'] ?? '',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // Provider information card
-        Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Provider Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildInfoRow('Experience', providerData['experience'] ?? ''),
-                _buildInfoRow('Location', providerData['location'] ?? ''),
-                _buildInfoRow('Availability', providerData['availability'] ?? ''),
-                
-                const SizedBox(height: 12),
-                
-                // Additional features for the provider
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildActionButton(Icons.message, 'Message'),
-                    _buildActionButton(Icons.favorite_border, 'Favorite'),
-                    _buildActionButton(Icons.share, 'Share'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildActionButton(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.teal.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: Colors.teal,
-            size: 20,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(value),
         ],
       ),

@@ -108,18 +108,10 @@ class BottomNavBar extends StatelessWidget {
               );
               break;
             case 3:
-              Map<String, String> providerData = {
-                'name': 'Dr. Sarah Johnson',
-                'specialty': 'Cardiologist',
-                'experience': '15 years',
-                'location': 'Main Clinic, Floor 2',
-                'rating': '4.8',
-                'availability': 'Mon-Fri, 9AM-5PM',
-              };
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProviderDetailsPage(providerData: providerData),
+                  builder: (context) => ServiceProviderProfile(),
                 ),
               );
               break;

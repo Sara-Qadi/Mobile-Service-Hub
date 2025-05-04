@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/screens/create_account.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
 import 'package:mobile_service_hub/screens/role.dart';
+import 'package:mobile_service_hub/views/services_page.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -20,9 +21,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showEmailError = false;
 
   void _login() {
-    print('Login Successful');
-    // TODO: Add real login logic
-  }
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => ServicesPage()),
+  );
+}
+
 
   void _updateButtonState() {
     final email = _emailController.text.trim();
@@ -165,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   return Colors.green;
                 }),
               ),
-              onPressed: isButtonEnabled ? _login : null,
+              onPressed: isButtonEnabled ? _login : null, 
               child: Text(
                 'Login',
                 style: TextStyle(
@@ -174,7 +178,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.white,
                   letterSpacing: 1.2,
                 ),
+                
               ),
+              
             ),
             SizedBox(height: 20),
 
