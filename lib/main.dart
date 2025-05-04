@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'screen/Bookingform.dart';
 import 'screen/NotificationsPage.dart';
 import 'screen/ProviderDetailsPage.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'views/services_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  
+  debugPrintRebuildDirtyWidgets = false;
+  
+  debugPrintRebuildDirtyWidgets = false;
+
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -83,7 +91,6 @@ class BottomNavBar extends StatelessWidget {
         ),
       ],
       onTap: (index) {
-        // Handle navigation based on index
         if (index != currentIndex) {
           switch (index) {
             case 1:
@@ -118,6 +125,24 @@ class BottomNavBar extends StatelessWidget {
           }
         }
       },
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'ServiceHub',
+      theme: ThemeData(
+        primarySwatch: Colors.teal,
+        textTheme: GoogleFonts.poppinsTextTheme(),
+        scaffoldBackgroundColor: Colors.grey[200],
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.background,
+          elevation: 4,
+        ),
+      ),
+      home: ServicesPage(),
+ service-hub
     );
   }
 }
