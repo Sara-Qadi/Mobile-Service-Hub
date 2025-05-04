@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/screen/ProviderDetailsPage.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'view_service_page.dart';
 
@@ -78,7 +79,7 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => ViewServicePage(service: service)));
+                      MaterialPageRoute(builder: (_) => ProviderDetailsPage(providerData: {},)));
                   },
                   child: Card(
                     elevation: 4,
