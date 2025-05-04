@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/main.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
 
@@ -271,19 +272,7 @@ void _editUsername() {
           ],
         ),
        ),
-      // bottomNavigationBar: BottomNavigationBar(
-      //   currentIndex: 3,
-      //   selectedItemColor: Colors.teal,
-      //   unselectedItemColor: Colors.grey,
-      //   selectedFontSize: 14,
-      //   unselectedFontSize: 12,
-      //   items: const [
-      //     BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: "Booking"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notification"),
-      //     BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: "Account"),
-      //   ],
-      // ),
+           bottomNavigationBar: const BottomNavBar(currentIndex: 3),
     );
   }
 }

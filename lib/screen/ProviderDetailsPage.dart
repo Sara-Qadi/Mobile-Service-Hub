@@ -31,7 +31,7 @@ class ProviderDetailsPage extends StatelessWidget {
           child: _buildProviderDetailsCard(context),
         ),
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+   
     );
   }
 

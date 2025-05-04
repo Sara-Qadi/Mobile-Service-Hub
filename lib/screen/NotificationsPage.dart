@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/screen/Bookingform.dart';
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 import '../main.dart';
-import 'ProviderDetailsPage.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    
     final List<NotificationItem> notifications = [
       NotificationItem(
         title: 'New Provider Available',
@@ -24,7 +24,7 @@ class NotificationsPage extends StatelessWidget {
           'availability': 'Mon-Fri, 9AM-5PM',
         },
       ),
-      NotificationItem(
+   NotificationItem(
         title: 'Booking Confirmed',
         message: 'Your booking with Dr. Sarah has been confirmed for tomorrow at 2:00 PM',
         time: '2 hours ago',
@@ -96,15 +96,11 @@ class NotificationsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Notifications',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('All notifications marked as read')),
               );
@@ -136,25 +132,16 @@ class NotificationsPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_off_outlined,
-            size: 80,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           const Text(
             'No Notifications',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
             'You don\'t have any notifications at the moment',
-            style: TextStyle(
-              color: Colors.grey,
-            ),
+            style: TextStyle(color: Colors.grey),
           ),
         ],
       ),
@@ -162,7 +149,6 @@ class NotificationsPage extends StatelessWidget {
   }
 
   Widget _buildNotificationItem(BuildContext context, NotificationItem notification) {
-    
     IconData notificationIcon;
     Color iconBackgroundColor;
 
@@ -192,34 +178,21 @@ class NotificationsPage extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        
         if (notification.type == NotificationType.provider && notification.providerData != null) {
-        
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProviderDetailsPage(
-                providerData: notification.providerData!,
-              ),
-            ),
-          );
+          _showProviderDetailsPopup(context, notification.providerData!);
         } else {
-          
           _showNotificationDetail(context, notification);
         }
       },
       child: Container(
         decoration: BoxDecoration(
           color: notification.isRead ? Colors.white : Colors.teal.withOpacity(0.05),
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
-          ),
+          border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
             Container(
               width: 40,
               height: 40,
@@ -227,14 +200,9 @@ class NotificationsPage extends StatelessWidget {
                 color: iconBackgroundColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(
-                notificationIcon,
-                color: iconBackgroundColor,
-                size: 20,
-              ),
+              child: Icon(notificationIcon, color: iconBackgroundColor, size: 20),
             ),
             const SizedBox(width: 12),
-            
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,20 +223,14 @@ class NotificationsPage extends StatelessWidget {
                       ),
                       Text(
                         notification.time,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      height: 1.3,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade700, height: 1.3),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -294,6 +256,64 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
+  void _showProviderDetailsPopup(BuildContext context, Map<String, String> providerData) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Provider Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildProviderDetailsCard(context, providerData),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+              onPressed: () {
+  Navigator.pop(context); 
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => BookingForm()),
+  );
+},
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'Book Appointment',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showNotificationDetail(BuildContext context, NotificationItem notification) {
     showModalBottomSheet(
       context: context,
@@ -304,21 +324,16 @@ class NotificationsPage extends StatelessWidget {
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
-          
           height: MediaQuery.of(context).size.height * 0.75,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-             
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     notification.title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -329,74 +344,36 @@ class NotificationsPage extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 notification.time,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 20),
               Text(
                 notification.message,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.5,
-                ),
+                style: const TextStyle(fontSize: 16, height: 1.5),
               ),
               const SizedBox(height: 20),
-              
               if (notification.type == NotificationType.booking && notification.bookingData != null)
                 _buildBookingDetailsCard(context, notification.bookingData!),
-              
-              if (notification.type == NotificationType.provider && notification.providerData != null)
-                _buildProviderDetailsCard(context, notification.providerData!),
-              
               const Spacer(),
-              
               if (notification.type == NotificationType.booking)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                onPressed: () {
+  Navigator.pop(context);
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => BookingTimesTableView(bookingData: {},)),
+  );
+},
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'View Full Booking Details',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              
-              if (notification.type == NotificationType.provider && notification.providerData != null)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProviderDetailsPage(
-                            providerData: notification.providerData!,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text(
-                      'View Provider Profile',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -407,40 +384,12 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingDetailsCard(BuildContext context, Map<String, String> bookingData) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Booking Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow('Name', bookingData['name'] ?? ''),
-            _buildInfoRow('Service', bookingData['service'] ?? ''),
-            _buildInfoRow('Provider', bookingData['provider'] ?? ''),
-            _buildInfoRow('Location', bookingData['location'] ?? ''),
-            _buildInfoRow('Date', bookingData['date'] ?? ''),
-            _buildInfoRow('Time', bookingData['time'] ?? ''),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildProviderDetailsCard(BuildContext context, Map<String, String> providerData) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -465,17 +414,41 @@ class NotificationsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildBookingDetailsCard(BuildContext context, Map<String, String> bookingData) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Booking Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildInfoRow('Name', bookingData['name'] ?? ''),
+            _buildInfoRow('Service', bookingData['service'] ?? ''),
+            _buildInfoRow('Provider', bookingData['provider'] ?? ''),
+            _buildInfoRow('Location', bookingData['location'] ?? ''),
+            _buildInfoRow('Date', bookingData['date'] ?? ''),
+            _buildInfoRow('Time', bookingData['time'] ?? ''),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(value),
         ],
       ),
