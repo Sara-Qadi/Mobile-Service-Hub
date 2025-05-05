@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'view_service_page.dart';
@@ -16,39 +15,13 @@ class ServicesDisplayPage extends StatefulWidget {
 class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
   TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredServices = [];
+  String selectedCategory = 'All';
 
   @override
   void initState() {
     super.initState();
-    filteredServices = _getUniqueServices(widget.services);
+    filteredServices = widget.services;
     _searchController.addListener(_filterServices);
-  }
-
-  List<Map<String, dynamic>> _getUniqueServices(List<Map<String, dynamic>> services) {
-    final seen = <String>{};
-    final uniqueServices = <Map<String, dynamic>>[];
-
-    for (var service in services) {
-      final name = service['name'];
-      if (name != null && !seen.contains(name)) {
-        seen.add(name);
-        uniqueServices.add(service);
-      }
-    }
-
-    return uniqueServices;
-  }
-
-  void _filterServices() {
-    final query = _searchController.text.toLowerCase();
-    final results = widget.services.where((service) {
-      final name = service['name']?.toString().toLowerCase() ?? '';
-      return name.contains(query);
-    }).toList();
-
-    setState(() {
-      filteredServices = _getUniqueServices(results);
-    });
   }
 
   @override
@@ -57,10 +30,76 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
     super.dispose();
   }
 
+  List<String> getCategories() {
+    final categories = widget.services
+        .map((s) => s['name']?.toString() ?? '')
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
+    categories.sort();
+    return ['All', ...categories];
+  }
+
+  void _filterServices() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      filteredServices = widget.services.where((service) {
+        final name = service['name']?.toString().toLowerCase() ?? '';
+        final matchQuery = name.contains(query);
+        final matchCategory =
+            selectedCategory == 'All' || service['name'] == selectedCategory;
+        return matchQuery && matchCategory;
+      }).toList();
+    });
+  }
+
+  void _onCategoryChanged(String? category) {
+    if (category == null) return;
+    setState(() {
+      selectedCategory = category;
+    });
+    _filterServices(); 
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Display Services"), backgroundColor: Colors.teal),
+      appBar: AppBar(
+        title: Text("Display Services"),
+        backgroundColor: Colors.teal,
+        actions: [
+         Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+  child: Container(
+    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: Colors.white,
+   
+      border: Border.all(color: Colors.teal, width: 1.2),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: selectedCategory,
+        dropdownColor: Colors.white,
+        style: TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
+        items: getCategories().map((category) {
+          return DropdownMenuItem(
+            value: category,
+            child: Text(
+              category,
+              style: TextStyle(color: Colors.black),
+            ),
+          );
+        }).toList(),
+        onChanged: _onCategoryChanged,
+        icon: Icon(Icons.filter_list, color: Colors.teal),
+      ),
+    ),
+  ),
+),
+
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -91,47 +130,81 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
               itemCount: filteredServices.length,
               itemBuilder: (_, index) {
                 final service = filteredServices[index];
-                Uint8List? imageBytes;
-                try {
-                  imageBytes = base64Decode(service['imageBytes'] ?? '');
-                } catch (e) {
-                  imageBytes = null;
-                }
+                final imageBytes = base64Decode(service['imageBytes'] ?? '');
 
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ViewServicePage(service: service),
-                      ),
+                          builder: (_) => ViewServicePage(service: service)),
                     );
                   },
                   child: Card(
                     elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Image with overlay name
                         Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                            child: imageBytes != null
-                                ? Image.memory(
-                                    imageBytes,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  )
-                                : Container(
-                                    color: Colors.grey[300],
-                                    child: Icon(Icons.image, size: 50, color: Colors.teal),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(12)),
+                                child: Image.memory(
+                                  imageBytes,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(12),
+                                      topRight: Radius.circular(12),
+                                    ),
                                   ),
+                                  child: Text(
+                                    service['user'] ?? 'Unknown',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black45,
+                                          offset: Offset(0, 1),
+                                          blurRadius: 2,
+                                        ),
+                                      ],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+
+                        // Service name
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text(
                             service['name'],
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),

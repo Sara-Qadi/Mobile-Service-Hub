@@ -118,21 +118,23 @@ void _sendResetLink() {
 
               SizedBox(height: 20),
               TextField(
-                controller: _contactController,
-                onChanged: (value) => _updateButtonState(),
-                keyboardType: _selectedMethod == 'email'
-                    ? TextInputType.emailAddress
-                    : TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText:
-                      _selectedMethod == 'email' ? "Email" : "Phone Number",
-                  hintText: _selectedMethod == 'email'
-                      ? "Enter your email"
-                      : "Enter your phone number",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
-                ),
-              ),
+  key: ValueKey(_selectedMethod), 
+  controller: _contactController,
+  onChanged: (value) => _updateButtonState(),
+  keyboardType: _selectedMethod == 'email'
+      ? TextInputType.emailAddress
+      : TextInputType.number, 
+  decoration: InputDecoration(
+    labelText:
+        _selectedMethod == 'email' ? "Email" : "Phone Number",
+    hintText: _selectedMethod == 'email'
+        ? "Enter your email"
+        : "Enter your phone number",
+    border: OutlineInputBorder(),
+    hintStyle: TextStyle(color: Colors.blueGrey),
+  ),
+),
+
 
               SizedBox(height: 30),
               ElevatedButton(

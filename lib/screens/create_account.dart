@@ -17,6 +17,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _locationController = TextEditingController();
+  bool _obscurePassword = true;
+bool _obscureConfirmPassword = true;
+
 
   bool isButtonEnabled = false;
 
@@ -88,29 +91,51 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 ),
               ),
               SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                onChanged: (_) => _updateButtonState(),
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  hintText: "Enter your password",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
+            TextField(
+              controller: _passwordController,
+              onChanged: (_) => _updateButtonState(),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: "Password",
+                hintText: "Enter your password",
+                border: OutlineInputBorder(),
+                hintStyle: TextStyle(color: Colors.blueGrey),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
               ),
+            ),
+
               SizedBox(height: 20),
               TextField(
                 controller: _confirmPasswordController,
                 onChanged: (_) => _updateButtonState(),
-                obscureText: true,
+                obscureText: _obscureConfirmPassword,
                 decoration: InputDecoration(
                   labelText: "Confirm Password",
                   hintText: "Re-enter your password",
                   border: OutlineInputBorder(),
                   hintStyle: TextStyle(color: Colors.blueGrey),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                  ),
                 ),
               ),
+
               SizedBox(height: 20),
               TextField(
                 controller: _locationController,
