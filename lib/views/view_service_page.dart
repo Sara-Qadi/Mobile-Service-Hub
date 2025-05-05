@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/screen/Bookingform.dart';
 import 'rating_page.dart';
-import '/screens/choose_provider.dart';
 import '../screens/service_repository.dart';
 
 class ViewServicePage extends StatefulWidget {
@@ -167,28 +167,20 @@ class _ViewServicePageState extends State<ViewServicePage> {
                             side: const BorderSide(color: Colors.white, width: 1.5),
                           ),
                         ),
-                      onPressed: () async {
-                  final selectedProvider = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChooseProviderPage(
-                        serviceName: service['name'],
-                        allServices: getAllServices(),
-                      ),
-                    ),
-                  );
-
-                  if (selectedProvider != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('You selected: ${selectedProvider['user']}')),
-                    );
-                  }
-                },
+                   onPressed: () {
+                        Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookingForm()));
+                    
+                  },
               
             
                       ),
                     ),
                     const SizedBox(height: 16),
+                    _buildDetailCard('Service Provider', service['user'] ?? 'N/A'),
+
                     _buildDetailCard('Details', service['details'] ?? 'N/A'),
                     _buildDetailCard('Price', '${service['price'] ?? 'N/A'} \$'),
                     const SizedBox(height: 16),
