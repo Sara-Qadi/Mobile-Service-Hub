@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
@@ -105,7 +106,8 @@ class BottomNavBar extends StatelessWidget {
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const BookingForm()),
+                MaterialPageRoute(builder: (context) => const BookingTimesTableView(bookingData: {},)
+                     ),
               );
               break;
             case 2:

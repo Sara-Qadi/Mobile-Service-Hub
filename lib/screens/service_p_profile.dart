@@ -169,7 +169,7 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
                     child: IconButton(
                       icon: const Icon(Icons.edit, color: Colors.white, size: 22),
                       onPressed: () {
-                        // todo
+                        // TODO: Implement profile picture edit
                       },
                     ),
                   ),
@@ -205,7 +205,6 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
                 ),
               ),
             ),
-            // Notifications Toggle
             SwitchListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               secondary: const Icon(Icons.notifications, size: 28),
@@ -250,7 +249,7 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
                   title: "Delete Account",
                   content: "Are you sure you want to delete your account?",
                   onConfirm: () {
-                    // todo
+                    // TODO: Implement delete logic
                   },
                 );
               },
@@ -263,11 +262,10 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
                   title: "Log Out",
                   content: "Are you sure you want to log out?",
                   onConfirm: () {
-                    Navigator.pushReplacement(
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => LoginScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                      (Route<dynamic> route) => false,
                     );
                   },
                 );
