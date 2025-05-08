@@ -1,76 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/screens/create_account.dart';
+import 'package:mobile_service_hub/theme/app_colors.dart'; 
 
 class RoleSelectionScreen extends StatelessWidget {
+  const RoleSelectionScreen({super.key});
+
+  void _navigateToCreateAccount(BuildContext context, String role) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CreateAccountScreen(role: role),
+      ),
+    );
+  }
+
+  Widget _buildRoleButton({
+    required BuildContext context,
+    required String label,
+    required String role,
+    required Color color,
+  }) {
+    return ElevatedButton(
+      onPressed: () => _navigateToCreateAccount(context, role),
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 70),
+        backgroundColor: color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        shadowColor: AppColors.shadow,
+        elevation: 4,
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 20, color: Colors.white),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
+      backgroundColor: AppColors.background,
       body: Padding(
-        
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: 250),
-
-            Text(
+            const SizedBox(height: 250),
+            const Text(
               "Please select your role",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.text,
+              ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 30),
-            
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateAccountScreen(role: "Service Provider"),
-                  ),
-                );
-              },
-              child: Text("Customer" ,   style: TextStyle(fontSize: 20),),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 70),
-
-                primary: Colors.blue,
-              ),
-              
+            const SizedBox(height: 30),
+            _buildRoleButton(
+              context: context,
+              label: "Customer",
+              role: "Customer",
+              color: AppColors.primary,
             ),
-            SizedBox(height: 20),
-            
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateAccountScreen(role: "Admin"),
-                  ),
-                );
-              },
-              child: Text("Service Provider",   style: TextStyle(fontSize: 20),),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 70),
-                primary: Colors.green,
-              ),
+            const SizedBox(height: 20),
+            _buildRoleButton(
+              context: context,
+              label: "Service Provider",
+              role: "Service Provider",
+              color: AppColors.secondary,
             ),
-            SizedBox(height: 20),
-            
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CreateAccountScreen(role: "Customer"),
-                  ),
-                );
-              },
-              child: Text("Admin",   style: TextStyle(fontSize: 20),),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 70),
-                primary: Colors.orange,
-              ),
+            const SizedBox(height: 20),
+            _buildRoleButton(
+              context: context,
+              label: "Admin",
+              role: "Admin",
+              color: AppColors.accent,
             ),
           ],
         ),

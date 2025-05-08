@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; 
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
 import 'package:mobile_service_hub/screens/customer_profile.dart';
@@ -12,8 +14,11 @@ import 'screen/ProviderDetailsPage.dart';
 import 'views/services_page.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 
-void main() {
-  debugPrintRebuildDirtyWidgets = false;
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); 
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
@@ -56,7 +61,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home:  LoginScreen(), // Start Page
+      home: LoginScreen(), // Start Page
     );
   }
 }
@@ -100,14 +105,13 @@ class BottomNavBar extends StatelessWidget {
             case 0:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) =>  ServicesPage()),
+                MaterialPageRoute(builder: (context) => ServicesPage()),
               );
               break;
             case 1:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const BookingTimesTableView(bookingData: {},)
-                     ),
+                MaterialPageRoute(builder: (context) => const BookingTimesTableView(bookingData: {})),
               );
               break;
             case 2:
@@ -117,14 +121,9 @@ class BottomNavBar extends StatelessWidget {
               );
               break;
             case 3:
-
-            
-
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => ServiceProviderProfile(),
-                ),
+                MaterialPageRoute(builder: (context) => ServiceProviderProfile()),
               );
               break;
           }

@@ -5,10 +5,14 @@ class VerifyCodeScreen extends StatefulWidget {
   final String contact;
   final String method;
 
-  VerifyCodeScreen({required this.contact, required this.method});
+  const VerifyCodeScreen({
+    required this.contact,
+    required this.method,
+    super.key,
+  });
 
   @override
-  _VerifyCodeScreenState createState() => _VerifyCodeScreenState();
+  State<VerifyCodeScreen> createState() => _VerifyCodeScreenState();
 }
 
 class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
@@ -20,14 +24,14 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
       _controllers.every((controller) => controller.text.isNotEmpty);
 
   void _verifyCode() {
-    String enteredCode = _controllers.map((c) => c.text).join();
+    final enteredCode = _controllers.map((c) => c.text).join();
     print('Verifying code $enteredCode sent to ${widget.contact}');
 
-    // TODO: Add actual verification logic
+    // todo
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => ResetPasswordScreen(contact: widget.contact),
+        builder: (_) => ResetPasswordScreen(contact: widget.contact),
       ),
     );
   }
@@ -43,22 +47,25 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
 
   @override
   void dispose() {
-    _controllers.forEach((c) => c.dispose());
-    _focusNodes.forEach((f) => f.dispose());
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
-  Widget _buildDigitBox(int index) {
-    return Container(
+  Widget _buildDigitField(int index) {
+    return SizedBox(
       width: 50,
-      margin: EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
         controller: _controllers[index],
         focusNode: _focusNodes[index],
         keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
         maxLength: 1,
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
           counterText: '',
           border: OutlineInputBorder(
@@ -71,59 +78,71 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(title: Text("Verify ${widget.method.toUpperCase()}")),
-    body: Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: SingleChildScrollView(
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Verify ${widget.method.toUpperCase()}"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            SizedBox(height: 140),
+            const SizedBox(height: 100),
             Text(
-              'Enter the code sent to your ${widget.method}:\n${widget.contact}',
+              'Enter the code sent to your ${widget.method}:',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 8),
+            Text(
+              widget.contact,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 40),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) => _buildDigitBox(index)),
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(4, _buildDigitField),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 30),
             TextButton(
               onPressed: () {
-                // TODO: Add actual resend logic
+                // todo
                 print('Resending code to ${widget.contact}');
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Verification code resent')),
+                  const SnackBar(content: Text('Verification code resent')),
                 );
               },
-              child: Text('Resend Code'),
+              child: const Text('Resend Code'),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 30),
             ElevatedButton(
               onPressed: _isCodeComplete ? _verifyCode : null,
-              child: Text('Verify', style: TextStyle(fontSize: 18)),
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 32,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
+              child: const Text('Verify', style: TextStyle(fontSize: 18)),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 20),
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel', style: TextStyle(color: Colors.red)),
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }
