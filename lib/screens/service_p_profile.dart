@@ -127,7 +127,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                     child: IconButton(
                       icon: const Icon(Icons.edit, color: Colors.white),
                       onPressed: () {
-                        // TODO: Handle image update
+                        // todo
                       },
                     ),
                   ),
@@ -202,7 +202,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                 "Delete Account",
                 "Are you sure you want to delete your account?",
                 () {
-                  // TODO: Delete account logic
+                  // todo
                 },
               ),
             ),
