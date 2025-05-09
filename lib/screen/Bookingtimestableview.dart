@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../widget/booking_widgets/booking_details_card.dart';
 import '../widget/bottom_nav_bar.dart';
+
 class BookingTimesTableView extends StatelessWidget {
   final Map<String, String> bookingData;
+
   const BookingTimesTableView({
     Key? key,
     required this.bookingData,
   }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,6 +54,7 @@ class BookingTimesTableView extends StatelessWidget {
                                   _buildHeaderCell('Date'),
                                 ],
                               ),
+
                               // First data row with booking data
                               _buildDataRow([
                                 bookingData['name'] ?? '',
@@ -58,6 +62,7 @@ class BookingTimesTableView extends StatelessWidget {
                                 bookingData['service'] ?? '',
                                 bookingData['date'] ?? '',
                               ]),
+
                               // Empty rows
                               for (int i = 0; i < 5; i++)
                                 _buildDataRow(['', '', '', '']),
@@ -70,7 +75,9 @@ class BookingTimesTableView extends StatelessWidget {
                 },
               ),
             ),
+
             const SizedBox(height: 16),
+
             BookingDetailsCard(
               bookingData: bookingData,
               title: 'Booking Information',
@@ -81,6 +88,7 @@ class BookingTimesTableView extends StatelessWidget {
       bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
   }
+
   Widget _buildHeaderCell(String text) {
     return Expanded(
       child: Container(
@@ -108,6 +116,7 @@ class BookingTimesTableView extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildDataRow(List<String> cells) {
     return IntrinsicHeight(
       child: Row(
@@ -116,6 +125,7 @@ class BookingTimesTableView extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildDataCell(String text) {
     return Expanded(
       child: Container(
@@ -140,13 +150,3 @@ class BookingTimesTableView extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
