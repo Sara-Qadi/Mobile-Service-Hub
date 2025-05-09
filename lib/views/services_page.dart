@@ -12,7 +12,7 @@ import 'add_service_page.dart';
 import 'view_service_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'update_service.dart';
-
+import '../widget/bottom_nav_bar.dart';
 class ServicesPage extends StatefulWidget {
   @override
   _ServicesPageState createState() => _ServicesPageState();

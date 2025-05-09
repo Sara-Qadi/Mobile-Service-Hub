@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../widget/booking_widgets/booking_form_fields.dart';
+import '../widget/bottom_nav_bar.dart';
 import 'Bookingconfirmation.dart';
 
 class BookingForm extends StatefulWidget {
@@ -17,6 +18,17 @@ class _BookingFormState extends State<BookingForm> {
 
   final String serviceName = "Service Name";
   final String serviceProvider = "Service Provider Name";
+  
+  bool _isFormValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_validateForm);
+    _locationController.addListener(_validateForm);
+    _timeController.addListener(_validateForm);
+    _dateController.addListener(_validateForm);
+  }
 
   @override
   void dispose() {
@@ -25,6 +37,15 @@ class _BookingFormState extends State<BookingForm> {
     _timeController.dispose();
     _dateController.dispose();
     super.dispose();
+  }
+
+  void _validateForm() {
+    setState(() {
+      _isFormValid = _nameController.text.isNotEmpty &&
+          _locationController.text.isNotEmpty &&
+          _timeController.text.isNotEmpty &&
+          _dateController.text.isNotEmpty;
+    });
   }
 
   void _selectTime() async {
@@ -54,10 +75,7 @@ class _BookingFormState extends State<BookingForm> {
   }
 
   void _submitBooking() {
-    if (_nameController.text.isEmpty ||
-        _locationController.text.isEmpty ||
-        _timeController.text.isEmpty ||
-        _dateController.text.isEmpty) {
+    if (!_isFormValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
@@ -113,91 +131,50 @@ class _BookingFormState extends State<BookingForm> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Name',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
+              
+              LabeledTextField(
+                label: 'Name',
+                hintText: 'Enter your name',
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your name',
-                ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Location',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
+              
+              LabeledTextField(
+                label: 'Location',
+                hintText: 'Enter your location',
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your location',
-                ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Time',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
+              
+              LabeledTextField(
+                label: 'Time',
+                hintText: 'Enter the time you want',
                 controller: _timeController,
                 readOnly: true,
-                decoration: InputDecoration(
-                  hintText: 'Enter the time you want',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.access_time),
-                    onPressed: _selectTime,
-                  ),
-                ),
                 onTap: _selectTime,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Date',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: _selectTime,
                 ),
               ),
-              const SizedBox(height: 8),
-              TextField(
+              
+              LabeledTextField(
+                label: 'Date',
+                hintText: 'Enter the date you want',
                 controller: _dateController,
                 readOnly: true,
-                decoration: InputDecoration(
-                  hintText: 'Enter the date you want',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: _selectDate,
-                  ),
-                ),
                 onTap: _selectDate,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _selectDate,
+                ),
               ),
-              const SizedBox(height: 32),
-              ElevatedButton(
+              
+              const SizedBox(height: 16),
+              
+              ActionButton(
+                text: 'Booking now',
                 onPressed: _submitBooking,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Booking now',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                isEnabled: _isFormValid,
+                backgroundColor: Colors.teal,
               ),
             ],
           ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/main.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
-
+import '../widget/bottom_nav_bar.dart';
 class ServiceProviderProfile extends StatefulWidget {
   const ServiceProviderProfile({super.key});
 

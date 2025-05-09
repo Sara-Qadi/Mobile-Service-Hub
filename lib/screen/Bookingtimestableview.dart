@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../widget/booking_widgets/booking_details_card.dart';
+import '../widget/bottom_nav_bar.dart';
 
 class BookingTimesTableView extends StatelessWidget {
   final Map<String, String> bookingData;
@@ -82,31 +83,9 @@ class BookingTimesTableView extends StatelessWidget {
             
             const Spacer(),
             
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Booking Information',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoRow('Name', bookingData['name'] ?? ''),
-                    _buildInfoRow('Service', bookingData['service'] ?? ''),
-                    _buildInfoRow('Provider', bookingData['provider'] ?? ''),
-                    _buildInfoRow('Location', bookingData['location'] ?? ''),
-                    _buildInfoRow('Date', bookingData['date'] ?? ''),
-                    _buildInfoRow('Time', bookingData['time'] ?? ''),
-                  ],
-                ),
-              ),
+            BookingDetailsCard(
+              bookingData: bookingData,
+              title: 'Booking Information',
             ),
           ],
         ),
@@ -158,23 +137,6 @@ class BookingTimesTableView extends StatelessWidget {
           ),
           textAlign: TextAlign.center,
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Text(value),
-        ],
       ),
     );
   }
