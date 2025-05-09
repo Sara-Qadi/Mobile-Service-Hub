@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; 
 import 'package:google_fonts/google_fonts.dart';
-
-import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
 import 'package:mobile_service_hub/screens/customer_profile.dart';
@@ -13,18 +9,13 @@ import 'screen/NotificationsPage.dart';
 import 'screen/ProviderDetailsPage.dart';
 import 'views/services_page.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+import 'widget/bottom_nav_bar.dart';
+void main() {
+  debugPrintRebuildDirtyWidgets = false;
   runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -61,74 +52,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginScreen(), // Start Page
-    );
-  }
-}
-
-class BottomNavBar extends StatelessWidget {
-  final int currentIndex;
-
-  const BottomNavBar({
-    Key? key,
-    required this.currentIndex,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.teal,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today),
-          label: 'Booking',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.notifications),
-          label: 'Notification',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Account',
-        ),
-      ],
-      onTap: (index) {
-        if (index != currentIndex) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => ServicesPage()),
-              );
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const BookingTimesTableView(bookingData: {})),
-              );
-              break;
-            case 2:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const NotificationsPage()),
-              );
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ServiceProviderProfile()),
-              );
-              break;
-          }
-        }
-      },
+      home: LoginScreen(),
     );
   }
 }

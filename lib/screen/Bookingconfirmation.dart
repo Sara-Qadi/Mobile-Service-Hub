@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../widget/booking_widgets/booking_details_card.dart';
+import '../widget/booking_widgets/booking_form_fields.dart';
+import '../widget/bottom_nav_bar.dart';
 import 'Bookingform.dart';
 import 'Bookingtimestableview.dart';
 
@@ -21,8 +23,54 @@ class BookingConfirmation extends StatelessWidget {
     required this.provider,
   }) : super(key: key);
 
+  void _showCancelConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Cancellation'),
+          content: const Text('Are you sure you want to cancel your booking?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); 
+              },
+              child: const Text(
+                'Go Back',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); 
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BookingForm()),
+                  (route) => false,
+                );
+              },
+              child: const Text(
+                'Confirm Cancellation',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final Map<String, String> bookingData = {
+      'name': name,
+      'service': service,
+      'provider': provider,
+      'location': location,
+      'date': date,
+      'time': time,
+    };
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -33,7 +81,7 @@ class BookingConfirmation extends StatelessWidget {
           ),
         ),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -55,64 +103,33 @@ class BookingConfirmation extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
-              ElevatedButton(
+              const SizedBox(height: 30),
+              BookingDetailsCard(
+                bookingData: bookingData,
+                title: 'Booking Confirmation',
+              ),
+              const SizedBox(height: 30),
+              ActionButton(
+                text: 'Go to Booking Details',
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => BookingTimesTableView(
-                        bookingData: {
-                          'name': name,
-                          'location': location,
-                          'time': time,
-                          'date': date,
-                          'service': service,
-                          'provider': provider,
-                        },
+                        bookingData: bookingData,
                       ),
                     ),
                   );
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 30,
-                  ),
-                ),
-                child: const Text(
-                  'Go to Booking Details',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                backgroundColor: Colors.teal,
+                textColor: Colors.white,
               ),
               const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const BookingForm()),
-                    (route) => false,
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey,
-                  side: const BorderSide(color: Colors.grey),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 30,
-                  ),
-                ),
-                child: const Text(
-                  'Cancel Booking',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              ActionButton(
+                text: 'Cancel Booking',
+                onPressed: () => _showCancelConfirmationDialog(context),
+                isOutlined: true,
+                textColor: Colors.grey,
               ),
             ],
           ),
