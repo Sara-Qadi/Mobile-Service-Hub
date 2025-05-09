@@ -1,13 +1,18 @@
+// File: create_account_screen.dart
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/screens/login.dart';
+import '../widgets_sara/custom_text_field.dart';
+
 
 class CreateAccountScreen extends StatefulWidget {
-    final String role; // Role passed from the RoleSelectionScreen
-  
-  CreateAccountScreen({required this.role});
+  final String role;
+
+  const CreateAccountScreen({required this.role, super.key});
+
   @override
-  _CreateAccountScreenState createState() => _CreateAccountScreenState();
+  State<CreateAccountScreen> createState() => _CreateAccountScreenState();
 }
 
 class _CreateAccountScreenState extends State<CreateAccountScreen> {
@@ -18,6 +23,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _confirmPasswordController = TextEditingController();
   final _locationController = TextEditingController();
 
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   bool isButtonEnabled = false;
 
   void _updateButtonState() {
@@ -31,159 +38,143 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   void _createAccount() {
     print('Account Created for ${_firstNameController.text}');
-    // TODO
+    // TODO: Implement actual logic
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _locationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(height: 120),
-              Center(
-                child: Text(
-                  'Create Account',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 120),
+            const Center(
+              child: Text(
+                'Create Account',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              SizedBox(height: 40),
-              TextField(
-                controller: _firstNameController,
-                onChanged: (_) => _updateButtonState(),
-                decoration: InputDecoration(
-                  labelText: "First Name",
-                  hintText: "Enter your first name",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
+            ),
+            const SizedBox(height: 40),
+            CustomTextField(
+              controller: _firstNameController,
+              label: 'First Name',
+              hint: 'Enter your first name',
+             onChanged: (_) => _updateButtonState(),
+            ),
+            CustomTextField(
+              controller: _lastNameController,
+              label: 'Last Name',
+              hint: 'Enter your last name',
+            onChanged: (_) => _updateButtonState(),
+
+            ),
+            CustomTextField(
+              controller: _emailController,
+              label: 'Email',
+              hint: 'Enter your email',
+            onChanged: (_) => _updateButtonState(),
+
+            ),
+            CustomTextField(
+              controller: _passwordController,
+              label: 'Password',
+              hint: 'Enter your password',
+              obscureText: _obscurePassword,
+          onChanged: (_) => _updateButtonState(),
+
+              suffixIcon: IconButton(
+                icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+            CustomTextField(
+              controller: _confirmPasswordController,
+              label: 'Confirm Password',
+              hint: 'Re-enter your password',
+              obscureText: _obscureConfirmPassword,
+             onChanged: (_) => _updateButtonState(),
+
+              suffixIcon: IconButton(
+                icon: Icon(_obscureConfirmPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility),
+                onPressed: () => setState(() =>
+                    _obscureConfirmPassword = !_obscureConfirmPassword),
+              ),
+            ),
+            CustomTextField(
+              controller: _locationController,
+              label: 'Location',
+              hint: 'Enter your location (Optional)',
+          onChanged: (_) => _updateButtonState(),
+
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                elevation: 6,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor:
+                    isButtonEnabled ? Colors.green : Colors.grey.shade400,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _lastNameController,
-                onChanged: (_) => _updateButtonState(),
-                decoration: InputDecoration(
-                  labelText: "Last Name",
-                  hintText: "Enter your last name",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _emailController,
-                onChanged: (_) => _updateButtonState(),
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  hintText: "Enter your email",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                onChanged: (_) => _updateButtonState(),
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  hintText: "Enter your password",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _confirmPasswordController,
-                onChanged: (_) => _updateButtonState(),
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: "Confirm Password",
-                  hintText: "Re-enter your password",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _locationController,
-                onChanged: (_) => _updateButtonState(),
-                decoration: InputDecoration(
-                  labelText: "Location",
-                  hintText: "Enter your location (Optional)",
-                  border: OutlineInputBorder(),
-                  hintStyle: TextStyle(color: Colors.blueGrey),
-                ),
-              ),
-              SizedBox(height: 30),
-              ElevatedButton(
-                style: ButtonStyle(
-                  elevation: MaterialStateProperty.all(6),
-                  padding: MaterialStateProperty.all(
-                    EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  shape: MaterialStateProperty.all(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  backgroundColor: MaterialStateProperty.resolveWith((states) {
-                    if (states.contains(MaterialState.pressed)) {
-                      return Colors.blueAccent;
-                    } else if (states.contains(MaterialState.hovered)) {
-                      return Colors.teal;
-                    } else if (states.contains(MaterialState.disabled)) {
-                      return Colors.grey.shade400;
-                    }
-                    return Colors.green;
-                  }),
-                ),
-                onPressed: isButtonEnabled ? _createAccount : null,
-                child: Text(
-                  'Create Account',
-                  style: TextStyle(
+              onPressed: isButtonEnabled ? _createAccount : null,
+              child: const Text(
+                'Create Account',
+                style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                ),
+                    letterSpacing: 1.2),
               ),
-              SizedBox(height: 30),
-              Center(
-                child: RichText(
-                  text: TextSpan(
-                    text: "Already have an account? ",
-                    style: TextStyle(color: Colors.black),
-                    children: [
-                      TextSpan(
-                        text: "Login",
-                        style: TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                           Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginScreen()),
-                          );
-                          },
+            ),
+            const SizedBox(height: 30),
+            Center(
+              child: RichText(
+                text: TextSpan(
+                  text: "Already have an account? ",
+                  style: const TextStyle(color: Colors.black),
+                  children: [
+                    TextSpan(
+                      text: "Login",
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>  LoginScreen()),
+                            ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

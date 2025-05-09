@@ -54,7 +54,7 @@ class BookingTimesTableView extends StatelessWidget {
                                   _buildHeaderCell('Date'),
                                 ],
                               ),
-                              
+
                               // First data row with booking data
                               _buildDataRow([
                                 bookingData['name'] ?? '',
@@ -62,7 +62,7 @@ class BookingTimesTableView extends StatelessWidget {
                                 bookingData['service'] ?? '',
                                 bookingData['date'] ?? '',
                               ]),
-                              
+
                               // Empty rows
                               for (int i = 0; i < 5; i++)
                                 _buildDataRow(['', '', '', '']),
@@ -75,9 +75,9 @@ class BookingTimesTableView extends StatelessWidget {
                 },
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             BookingDetailsCard(
               bookingData: bookingData,
               title: 'Booking Information',

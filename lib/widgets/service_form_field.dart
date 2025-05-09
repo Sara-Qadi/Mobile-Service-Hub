@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class ServiceFormField extends StatelessWidget {
@@ -24,6 +23,8 @@ class ServiceFormField extends StatelessWidget {
       onChanged: (_) => onChanged(),
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      textCapitalization:
+          isNumber ? TextCapitalization.none : TextCapitalization.words, 
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,

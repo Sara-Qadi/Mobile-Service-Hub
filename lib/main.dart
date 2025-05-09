@@ -9,17 +9,13 @@ import 'screen/NotificationsPage.dart';
 import 'screen/ProviderDetailsPage.dart';
 import 'views/services_page.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
-
 import 'widget/bottom_nav_bar.dart';
-
 void main() {
   debugPrintRebuildDirtyWidgets = false;
   runApp(const MyApp());
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -56,8 +52,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginScreen(), 
+      home: LoginScreen(),
     );
   }
 }
-

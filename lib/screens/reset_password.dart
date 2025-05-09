@@ -18,10 +18,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  bool _isValidPassword(String password) {
+    return password.length >= 6;
+
+  }
+
   void _resetPassword() {
     if (_formKey.currentState!.validate()) {
       print("Password reset for ${widget.contact}");
-      // TODO: Add actual reset logic
 
       showDialog(
         context: context,
@@ -46,13 +57,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   @override
-  void dispose() {
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Reset Password")),
@@ -70,7 +74,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               SizedBox(height: 30),
 
-              // New password
               TextFormField(
                 controller: _newPasswordController,
                 obscureText: _obscureNewPassword,
@@ -79,8 +82,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(_obscureNewPassword
-                        ? Icons.visibility
-                        : Icons.visibility_off),
+                        ? Icons.visibility_off
+                        : Icons.visibility),
                     onPressed: () {
                       setState(() {
                         _obscureNewPassword = !_obscureNewPassword;
@@ -89,7 +92,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.length < 6) {
+                  if (value == null || value.isEmpty) {
+                    return "Please enter a new password.";
+                  }
+                  if (!_isValidPassword(value)) {
                     return "Password must be at least 6 characters.";
                   }
                   return null;
@@ -97,7 +103,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               SizedBox(height: 20),
 
-              // Confirm password
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
@@ -106,8 +111,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(_obscureConfirmPassword
-                        ? Icons.visibility
-                        : Icons.visibility_off),
+                        ? Icons.visibility_off
+                        : Icons.visibility),
                     onPressed: () {
                       setState(() {
                         _obscureConfirmPassword = !_obscureConfirmPassword;
@@ -116,6 +121,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                 ),
                 validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please confirm your password.";
+                  }
                   if (value != _newPasswordController.text) {
                     return "Passwords do not match.";
                   }
