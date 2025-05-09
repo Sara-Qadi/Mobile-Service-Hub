@@ -5,108 +5,73 @@ import 'package:mobile_service_hub/screens/reset_password.dart';
 import '../widget/bottom_nav_bar.dart';
 
 import 'package:mobile_service_hub/views/services_page.dart';
-
+import 'package:mobile_service_hub/theme/app_colors.dart'; 
 class ServiceProviderProfile extends StatefulWidget {
   const ServiceProviderProfile({super.key});
 
   @override
-  State<ServiceProviderProfile> createState() => ServiceProviderProfileState();
+  State<ServiceProviderProfile> createState() => _ServiceProviderProfileState();
 }
 
-class ServiceProviderProfileState extends State<ServiceProviderProfile> {
+class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
   bool _notificationsEnabled = false;
   String _username = "Mohammad_5";
   String _phoneNumber = "0597259604";
 
-  void _confirmAction({
-    required String title,
-    required String content,
-    required VoidCallback onConfirm,
-  }) {
+  void _showConfirmDialog(String title, String content, VoidCallback onConfirm) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: Text(title),
         content: Text(content),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text("Cancel", style: TextStyle(color: Colors.grey[700])),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  onConfirm();
-                },
-                child: Text("Confirm", style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ],
+   actions: [
+  Row(
+    mainAxisAlignment: MainAxisAlignment.end,
+    children: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text("Cancel"),
       ),
-    );
-  }
-
-  void _editUsername() {
-    final controller = TextEditingController(text: _username);
-    String? errorText;
-
-    showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text("Edit Username"),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: "Enter new username",
-              errorText: errorText,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newUsername = controller.text.trim();
-                if (newUsername.isEmpty) {
-                  setState(() {
-                    errorText = "Username cannot be empty";
-                  });
-                } else {
-                  this.setState(() {
-                    _username = newUsername;
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Save"),
-            ),
-          ],
+      const SizedBox(width: 8),
+      TextButton(
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.red, 
         ),
+        onPressed: () {
+          Navigator.of(context).pop();
+          onConfirm();
+        },
+        child: const Text("Confirm"),
+      ),
+    ],
+  ),
+],
+
       ),
     );
   }
 
-  void _editPhoneNumber() {
-    final controller = TextEditingController(text: _phoneNumber);
+  void _editTextField({
+    required String title,
+    required String initialValue,
+    required String hintText,
+    required Function(String) onSave,
+    required String Function(String) validator,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    final controller = TextEditingController(text: initialValue);
     String? errorText;
 
     showDialog(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text("Edit Phone Number"),
+          title: Text(title),
           content: TextField(
             controller: controller,
-            keyboardType: TextInputType.phone,
+            keyboardType: keyboardType,
             decoration: InputDecoration(
-              hintText: "Enter new phone number",
+              hintText: hintText,
               errorText: errorText,
             ),
           ),
@@ -117,19 +82,12 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
             ),
             ElevatedButton(
               onPressed: () {
-                final newNumber = controller.text.trim();
-                if (newNumber.isEmpty) {
-                  setState(() {
-                    errorText = "Phone number cannot be empty";
-                  });
-                } else if (newNumber.length < 10 || !RegExp(r'^\d+$').hasMatch(newNumber)) {
-                  setState(() {
-                    errorText = "Enter a valid 10-digit number";
-                  });
+                final value = controller.text.trim();
+                final error = validator(value);
+                if (error.isNotEmpty) {
+                  setState(() => errorText = error);
                 } else {
-                  this.setState(() {
-                    _phoneNumber = newNumber;
-                  });
+                  onSave(value);
                   Navigator.pop(context);
                 }
               },
@@ -145,14 +103,14 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Profile", style: TextStyle(fontSize: 24)),
+        title: const Text("Profile"),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, size: 28),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             Center(
@@ -169,9 +127,9 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
                       color: Colors.black87,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.white, size: 22),
+                      icon: const Icon(Icons.edit, color: Colors.white),
                       onPressed: () {
-                        // TODO: Implement profile picture edit
+                        // todo
                       },
                     ),
                   ),
@@ -179,104 +137,139 @@ class ServiceProviderProfileState extends State<ServiceProviderProfile> {
               ),
             ),
             const SizedBox(height: 30),
-            ListTile(
-              leading: const Icon(Icons.person, size: 28),
-              title: const Text("Username", style: TextStyle(fontSize: 18)),
-              trailing: InkWell(
-                onTap: _editUsername,
-                child: Text(
-                  _username,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                      decoration: TextDecoration.underline),
-                ),
+            _buildProfileTile(
+              icon: Icons.person,
+              title: "Username",
+              value: _username,
+              onTap: () => _editTextField(
+                title: "Edit Username",
+                initialValue: _username,
+                hintText: "Enter new username",
+                onSave: (val) => setState(() => _username = val),
+                validator: (val) => val.isEmpty ? "Username cannot be empty" : "",
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.person, size: 28),
-              title: const Text("Number", style: TextStyle(fontSize: 18)),
-              trailing: InkWell(
-                onTap: _editPhoneNumber,
-                child: Text(
-                  _phoneNumber,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                      decoration: TextDecoration.underline),
-                ),
+            _buildProfileTile(
+              icon: Icons.phone,
+              title: "Phone Number",
+              value: _phoneNumber,
+              onTap: () => _editTextField(
+                title: "Edit Phone Number",
+                initialValue: _phoneNumber,
+                hintText: "Enter 10-digit phone number",
+                keyboardType: TextInputType.phone,
+                onSave: (val) => setState(() => _phoneNumber = val),
+                validator: (val) {
+                  if (val.isEmpty) return "Phone number cannot be empty";
+                  if (val.length != 10 || !RegExp(r'^\d+$').hasMatch(val)) {
+                    return "Enter a valid 10-digit number";
+                  }
+                  return "";
+                },
               ),
             ),
             SwitchListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              secondary: const Icon(Icons.notifications, size: 28),
-              title: const Text("Notifications", style: TextStyle(fontSize: 18)),
+              secondary: const Icon(Icons.notifications),
+              title: const Text("Notifications"),
               value: _notificationsEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _notificationsEnabled = value;
-                });
-              },
+              onChanged: (val) => setState(() => _notificationsEnabled = val),
             ),
-            ListTile(
-              leading: const Icon(Icons.keyboard_arrow_right, size: 30, color: Colors.black),
-              title: const Text("MyServices", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            _buildSimpleTile(
+              icon: Icons.build,
+              text: "My Services",
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ServicesPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) =>  ServicesPage()),
                 );
               },
             ),
-            const SizedBox(height: 50),
-            ListTile(
-              leading: const Icon(Icons.lock_reset, size: 28),
-              title: const Text("Change Password", style: TextStyle(fontSize: 18)),
+            const SizedBox(height: 30),
+            _buildSimpleTile(
+              icon: Icons.lock_reset,
+              text: "Change Password",
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ResetPasswordScreen(contact: ''),
-                  ),
+                  MaterialPageRoute(builder: (_) =>  ResetPasswordScreen(contact: '')),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.delete_forever, size: 28, color: Colors.red),
-              title: const Text("Delete Account", style: TextStyle(color: Colors.red, fontSize: 18)),
-              onTap: () {
-                _confirmAction(
-                  title: "Delete Account",
-                  content: "Are you sure you want to delete your account?",
-                  onConfirm: () {
-                    // TODO: Implement delete logic
-                  },
-                );
-              },
+            _buildSimpleTile(
+              icon: Icons.delete_forever,
+              text: "Delete Account",
+              textColor: Colors.red,
+              iconColor: Colors.red,
+              onTap: () => _showConfirmDialog(
+                "Delete Account",
+                "Are you sure you want to delete your account?",
+                () {
+                  // todo
+                },
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.logout, size: 28),
-              title: const Text("Log out", style: TextStyle(fontSize: 18)),
-              onTap: () {
-                _confirmAction(
-                  title: "Log Out",
-                  content: "Are you sure you want to log out?",
-                  onConfirm: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
-                      (Route<dynamic> route) => false,
-                    );
-                  },
-                );
-              },
+            _buildSimpleTile(
+              icon: Icons.logout,
+              text: "Log out",
+              onTap: () => _showConfirmDialog(
+                "Log Out",
+                "Are you sure you want to log out?",
+                () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) =>  LoginScreen()),
+                    (route) => false,
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+    );
+  }
+
+  Widget _buildProfileTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      trailing: InkWell(
+        onTap: onTap,
+        child: Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleTile({
+    required IconData icon,
+    required String text,
+    Color? iconColor,
+    Color? textColor,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor),
+      title: Text(
+        text,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+          color: textColor ?? AppColors.text,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }
