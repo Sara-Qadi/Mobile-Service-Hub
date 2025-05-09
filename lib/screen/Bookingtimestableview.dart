@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../widget/booking_widgets/booking_details_card.dart';
+import '../widget/bottom_nav_bar.dart';
 
 class BookingTimesTableView extends StatelessWidget {
   final Map<String, String> bookingData;
@@ -81,6 +82,33 @@ Widget build(BuildContext context) {
               ),
             ),
 
+            
+            for (int i = 0; i < 5; i++)
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: Colors.grey.shade300),
+                    right: BorderSide(color: Colors.grey.shade300),
+                    bottom: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _buildDataCell('', flex: 1),
+                    _buildDataCell('', flex: 1),
+                    _buildDataCell('', flex: 1),
+                    _buildDataCell('', flex: 1),
+                  ],
+                ),
+              ),
+            
+            const Spacer(),
+            
+            BookingDetailsCard(
+              bookingData: bookingData,
+              title: 'Booking Information',
+
+
           const SizedBox(height: 24),
 
           Card(
@@ -107,6 +135,7 @@ Widget build(BuildContext context) {
                   _buildInfoRow('Time', bookingData['time'] ?? ''),
                 ],
               ),
+
             ),
           ),
         ],
@@ -157,6 +186,7 @@ Widget _buildHeaderCell(String text, {required int flex}) {
           right: BorderSide(color: Colors.grey.shade300),
         ),
       ),
+
       alignment: Alignment.center,
       child: Text(
         text,
