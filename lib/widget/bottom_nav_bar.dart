@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/screen/Bookingform.dart';
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 import 'package:mobile_service_hub/screen/NotificationsPage.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
 import '/views/services_page.dart';
@@ -45,12 +46,15 @@ class BottomNavBar extends StatelessWidget {
                 MaterialPageRoute(builder: (context) =>  ServicesPage()),
               );
               break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const BookingForm()),
-              );
-              break;
+          case 1:
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => BookingTimesTableView(bookingData: {},),
+    ),
+  );
+  break;
+
             case 2:
               Navigator.pushReplacement(
                 context,
