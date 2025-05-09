@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_service_hub/screen/Bookingform.dart';
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
+import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
 import 'package:mobile_service_hub/screen/NotificationsPage.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
 import '/views/services_page.dart';
@@ -45,10 +46,19 @@ class BottomNavBar extends StatelessWidget {
                 MaterialPageRoute(builder: (context) =>  ServicesPage()),
               );
               break;
-            case 1:
+             case 1:
+             
+              Map<String, String> bookingData = {
+                'name': 'John Doe',
+                'time': '10:30 AM',
+                'service': 'Oil Change',
+                'date': '2025-05-10',
+              };
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const BookingForm()),
+                MaterialPageRoute(
+                  builder: (context) => BookingTimesTableView(bookingData: bookingData),
+                ),
               );
               break;
             case 2:

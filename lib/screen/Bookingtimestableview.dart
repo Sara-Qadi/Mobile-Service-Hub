@@ -30,58 +30,53 @@ class BookingTimesTableView extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  _buildHeaderCell('Name', flex: 1),
-                  _buildHeaderCell('Time', flex: 1),
-                  _buildHeaderCell('Name Service', flex: 1),
-                  _buildHeaderCell('Date', flex: 1),
-                ],
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth,
+                        ),
+                        child: IntrinsicWidth(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Table header
+                              Row(
+                                children: [
+                                  _buildHeaderCell('Name'),
+                                  _buildHeaderCell('Time'),
+                                  _buildHeaderCell('Name Service'),
+                                  _buildHeaderCell('Date'),
+                                ],
+                              ),
+                              
+                              // First data row with booking data
+                              _buildDataRow([
+                                bookingData['name'] ?? '',
+                                bookingData['time'] ?? '',
+                                bookingData['service'] ?? '',
+                                bookingData['date'] ?? '',
+                              ]),
+                              
+                              // Empty rows
+                              for (int i = 0; i < 5; i++)
+                                _buildDataRow(['', '', '', '']),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  left: BorderSide(color: Colors.grey.shade300),
-                  right: BorderSide(color: Colors.grey.shade300),
-                  bottom: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
-              child: Row(
-                children: [
-                  _buildDataCell(bookingData['name'] ?? '', flex: 1),
-                  _buildDataCell(bookingData['time'] ?? '', flex: 1),
-                  _buildDataCell(bookingData['service'] ?? '', flex: 1),
-                  _buildDataCell(bookingData['date'] ?? '', flex: 1),
-                ],
-              ),
-            ),
-            
-            for (int i = 0; i < 5; i++)
-              Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: Colors.grey.shade300),
-                    right: BorderSide(color: Colors.grey.shade300),
-                    bottom: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    _buildDataCell('', flex: 1),
-                    _buildDataCell('', flex: 1),
-                    _buildDataCell('', flex: 1),
-                    _buildDataCell('', flex: 1),
-                  ],
-                ),
-              ),
-            
-            const Spacer(),
+            const SizedBox(height: 16),
             
             BookingDetailsCard(
               bookingData: bookingData,
@@ -94,48 +89,62 @@ class BookingTimesTableView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderCell(String text, {required int flex}) {
+  Widget _buildHeaderCell(String text) {
     return Expanded(
-      flex: flex,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.grey.shade100,
           border: Border(
+            top: BorderSide(color: Colors.grey.shade300),
             right: BorderSide(color: Colors.grey.shade300),
             bottom: BorderSide(color: Colors.grey.shade300),
+            left: BorderSide(color: Colors.grey.shade300),
           ),
         ),
         alignment: Alignment.center,
+        constraints: const BoxConstraints(minHeight: 56),
         child: Text(
           text,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 2,
         ),
       ),
     );
   }
 
-  Widget _buildDataCell(String text, {required int flex}) {
+  Widget _buildDataRow(List<String> cells) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: cells.map((text) => _buildDataCell(text)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDataCell(String text) {
     return Expanded(
-      flex: flex,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           border: Border(
             right: BorderSide(color: Colors.grey.shade300),
+            bottom: BorderSide(color: Colors.grey.shade300),
+            left: BorderSide(color: Colors.grey.shade300),
           ),
         ),
         alignment: Alignment.center,
-        height: 50,
+        constraints: const BoxConstraints(minHeight: 50),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontSize: 14),
           textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 2,
         ),
       ),
     );
