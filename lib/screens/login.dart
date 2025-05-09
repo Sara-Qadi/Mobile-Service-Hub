@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: 180),
+            SizedBox(height: 125),
             Center(
               child: Image.asset(
                 'assets/images/logo.png',
@@ -138,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ForgotPasswordScreen(),

@@ -131,12 +131,32 @@ class _ServicesPageState extends State<ServicesPage> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            services.remove(service);
-                          });
-                          _saveServices();
-                        },
+                       onTap: () {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text("Delete Service"),
+      content: Text("Are you sure you want to delete this service?"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text("Cancel", style: TextStyle(color: Colors.grey[700])),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              services.remove(service);
+            });
+            _saveServices();
+            Navigator.of(context).pop();
+          },
+          child: Text("Delete", style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+},
+
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [

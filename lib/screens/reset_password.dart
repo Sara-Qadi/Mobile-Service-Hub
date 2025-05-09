@@ -79,8 +79,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(_obscureNewPassword
-                        ? Icons.visibility
-                        : Icons.visibility_off),
+                    ? Icons.visibility_off
+                    : Icons.visibility),
+
                     onPressed: () {
                       setState(() {
                         _obscureNewPassword = !_obscureNewPassword;
