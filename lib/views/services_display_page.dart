@@ -65,18 +65,23 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Display Services"),
+              title: Row(
+  mainAxisAlignment: MainAxisAlignment.start,
+  children: [
+    Text(
+      "Display Services",
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+  ],
+),
+
         backgroundColor: Colors.teal,
         actions: [
          Padding(
   padding: const EdgeInsets.symmetric(horizontal: 12.0),
   child: Container(
     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: Colors.white,
    
-      border: Border.all(color: Colors.teal, width: 1.2),
-    ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         value: selectedCategory,
@@ -92,7 +97,7 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
           );
         }).toList(),
         onChanged: _onCategoryChanged,
-        icon: Icon(Icons.filter_list, color: Colors.teal),
+        icon: Icon(Icons.filter_list, color: Color.fromARGB(255, 11, 11, 11)),
       ),
     ),
   ),
@@ -169,7 +174,7 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
                                   padding: EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
+                                    color: Colors.teal,
                                     borderRadius: BorderRadius.only(
                                       topLeft: Radius.circular(12),
                                       topRight: Radius.circular(12),

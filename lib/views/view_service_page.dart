@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/screen/Bookingform.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'rating_page.dart';
 import '../screens/service_repository.dart';
 
@@ -22,13 +23,36 @@ class _ViewServicePageState extends State<ViewServicePage> {
   void initState() {
     super.initState();
     service = Map<String, dynamic>.from(widget.service);
-    service['ratings'] = List<Map<String, dynamic>>.from(service['ratings'] ?? []);
+    service['ratings'] = [];
+    _loadRatings();
+  }
+
+  Future<void> _loadRatings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'ratings_${service['name']}';
+    final storedRatings = prefs.getString(key);
+    if (storedRatings != null) {
+      final decoded = jsonDecode(storedRatings);
+      if (decoded is List) {
+        setState(() {
+          service['ratings'] = List<Map<String, dynamic>>.from(decoded);
+        });
+      }
+    }
+  }
+
+  Future<void> _saveRatings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'ratings_${service['name']}';
+    final encoded = jsonEncode(service['ratings']);
+    await prefs.setString(key, encoded);
   }
 
   void _addRating(Map<String, dynamic> newRating) {
     setState(() {
       service['ratings'].add(newRating);
     });
+    _saveRatings(); // ⬅ حفظ التقييم في التخزين
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Your rating has been submitted!')),
@@ -88,10 +112,9 @@ class _ViewServicePageState extends State<ViewServicePage> {
 
   @override
   Widget build(BuildContext context) {
-  final List<Map<String, dynamic>> allProviders = getAllServices()
-    .where((s) => s['name'] == service['name'])
-    .toList();
-
+    final List<Map<String, dynamic>> allProviders = getAllServices()
+        .where((s) => s['name'] == service['name'])
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -167,20 +190,18 @@ class _ViewServicePageState extends State<ViewServicePage> {
                             side: const BorderSide(color: Colors.white, width: 1.5),
                           ),
                         ),
-                   onPressed: () {
-                        Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookingForm()));
-                    
-                  },
-              
-            
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BookingForm(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 16),
                     _buildDetailCard('Service Provider', service['user'] ?? 'N/A'),
-
                     _buildDetailCard('Details', service['details'] ?? 'N/A'),
                     _buildDetailCard('Price', '${service['price'] ?? 'N/A'} \$'),
                     const SizedBox(height: 16),
