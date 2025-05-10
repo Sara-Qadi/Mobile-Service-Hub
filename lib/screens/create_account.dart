@@ -1,13 +1,11 @@
-// File: create_account_screen.dart
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import '../widgets_sara/custom_text_field.dart';
-
-
 class CreateAccountScreen extends StatefulWidget {
-  final String role;
+  final String role; 
 
   const CreateAccountScreen({required this.role, super.key});
 
@@ -26,19 +24,73 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool isButtonEnabled = false;
+  bool _isLoading = false;
 
   void _updateButtonState() {
     setState(() {
       isButtonEnabled = _firstNameController.text.isNotEmpty &&
           _emailController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
-          _locationController.text.isNotEmpty;
+          _confirmPasswordController.text.isNotEmpty;
     });
   }
 
-  void _createAccount() {
-    print('Account Created for ${_firstNameController.text}');
-    // TODO: Implement actual logic
+  Future<void> _createAccount() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showError('Passwords do not match');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Create user with email and password
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        // Save user information to Firestore, including the selected role
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+          'uid': user.uid,
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'location': _locationController.text.trim(),
+          'role': widget.role, // Save role (Customer, Admin, etc.)
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        // Navigate to the login screen after successful registration
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'An error occurred');
+    } catch (e) {
+      _showError('Something went wrong');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -76,32 +128,30 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               controller: _firstNameController,
               label: 'First Name',
               hint: 'Enter your first name',
-             onChanged: (_) => _updateButtonState(),
+              onChanged: (_) => _updateButtonState(),
             ),
             CustomTextField(
               controller: _lastNameController,
               label: 'Last Name',
               hint: 'Enter your last name',
-            onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
             ),
             CustomTextField(
               controller: _emailController,
               label: 'Email',
               hint: 'Enter your email',
-            onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
             ),
             CustomTextField(
               controller: _passwordController,
               label: 'Password',
               hint: 'Enter your password',
               obscureText: _obscurePassword,
-          onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
               suffixIcon: IconButton(
-                icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility),
+                icon: Icon(_obscurePassword
+                    ? Icons.visibility_off
+                    : Icons.visibility),
                 onPressed: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
               ),
@@ -111,8 +161,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               label: 'Confirm Password',
               hint: 'Re-enter your password',
               obscureText: _obscureConfirmPassword,
-             onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
               suffixIcon: IconButton(
                 icon: Icon(_obscureConfirmPassword
                     ? Icons.visibility_off
@@ -125,30 +174,32 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               controller: _locationController,
               label: 'Location',
               hint: 'Enter your location (Optional)',
-          onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                elevation: 6,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor:
-                    isButtonEnabled ? Colors.green : Colors.grey.shade400,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: isButtonEnabled ? _createAccount : null,
-              child: const Text(
-                'Create Account',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2),
-              ),
-            ),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      elevation: 6,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: isButtonEnabled
+                          ? Colors.green
+                          : Colors.grey.shade400,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: isButtonEnabled ? _createAccount : null,
+                    child: const Text(
+                      'Create Account',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
             const SizedBox(height: 30),
             Center(
               child: RichText(
@@ -167,7 +218,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         ..onTap = () => Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>  LoginScreen()),
+                                  builder: (context) => LoginScreen()),
                             ),
                     ),
                   ],

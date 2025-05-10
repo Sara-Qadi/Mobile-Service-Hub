@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_service_hub/main.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
-import '../widget/bottom_nav_bar.dart';
-
 import 'package:mobile_service_hub/views/services_page.dart';
-import 'package:mobile_service_hub/theme/app_colors.dart'; 
+import 'package:mobile_service_hub/widget/bottom_nav_bar.dart';
+import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ServiceProviderProfile extends StatefulWidget {
   const ServiceProviderProfile({super.key});
 
@@ -15,49 +16,53 @@ class ServiceProviderProfile extends StatefulWidget {
 
 class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
   bool _notificationsEnabled = false;
-  String _username = "Mohammad_5";
-  String _phoneNumber = "0597259604";
+  String _firstName = '';
+  String _lastName = '';
+  bool _isLoading = true;
 
-  void _showConfirmDialog(String title, String content, VoidCallback onConfirm) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-   actions: [
-  Row(
-    mainAxisAlignment: MainAxisAlignment.end,
-    children: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text("Cancel"),
-      ),
-      const SizedBox(width: 8),
-      TextButton(
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.red, 
-        ),
-        onPressed: () {
-          Navigator.of(context).pop();
-          onConfirm();
-        },
-        child: const Text("Confirm"),
-      ),
-    ],
-  ),
-],
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
 
-      ),
-    );
+  Future<void> _loadUserProfile() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final data = doc.data();
+        if (data != null) {
+          setState(() {
+            _firstName = data['firstName'] ?? '';
+            _lastName = data['lastName'] ?? '';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print("Error fetching user profile: $e");
+    }
+  }
+
+  Future<void> _updateUserProfileField(String field, String value) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        field: value,
+      });
+      setState(() {
+        if (field == 'firstName') _firstName = value;
+        if (field == 'lastName') _lastName = value;
+      });
+    }
   }
 
   void _editTextField({
     required String title,
     required String initialValue,
     required String hintText,
-    required Function(String) onSave,
-    required String Function(String) validator,
-    TextInputType keyboardType = TextInputType.text,
+    required String fieldKey,
   }) {
     final controller = TextEditingController(text: initialValue);
     String? errorText;
@@ -69,7 +74,6 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
           title: Text(title),
           content: TextField(
             controller: controller,
-            keyboardType: keyboardType,
             decoration: InputDecoration(
               hintText: hintText,
               errorText: errorText,
@@ -83,11 +87,10 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
             ElevatedButton(
               onPressed: () {
                 final value = controller.text.trim();
-                final error = validator(value);
-                if (error.isNotEmpty) {
-                  setState(() => errorText = error);
+                if (value.isEmpty) {
+                  setState(() => errorText = "$fieldKey cannot be empty");
                 } else {
-                  onSave(value);
+                  _updateUserProfileField(fieldKey, value);
                   Navigator.pop(context);
                 }
               },
@@ -99,8 +102,115 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
     );
   }
 
+  void _showConfirmDialog(String title, String content, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("Cancel"),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onConfirm();
+                },
+                child: const Text("Confirm"),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _promptPassword() async {
+    String password = '';
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Re-authenticate"),
+          content: TextField(
+            obscureText: true,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Enter your password'),
+            onChanged: (value) => password = value,
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.of(context).pop(null),
+            ),
+            TextButton(
+              child: const Text("Confirm"),
+              onPressed: () => Navigator.of(context).pop(password),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAccountWithReauth() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        String? email = user.email;
+
+        if (email == null) {
+          throw Exception("User email not found.");
+        }
+
+        String? password = await _promptPassword();
+
+        if (password == null || password.isEmpty) return;
+
+        AuthCredential credential =
+            EmailAuthProvider.credential(email: email, password: password);
+
+        await user.reauthenticateWithCredential(credential);
+
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+        await user.delete();
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) =>  LoginScreen()),
+          (route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      print("Firebase error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "Authentication error")),
+      );
+    } catch (e) {
+      print("Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Account deletion failed")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Profile"),
@@ -129,43 +239,39 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                     child: IconButton(
                       icon: const Icon(Icons.edit, color: Colors.white),
                       onPressed: () {
-                        // todo
+                        // TODO: Change profile picture
                       },
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 10),
+            Text(
+              '$_firstName $_lastName',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 30),
             _buildProfileTile(
               icon: Icons.person,
-              title: "Username",
-              value: _username,
+              title: "First Name",
+              value: _firstName,
               onTap: () => _editTextField(
-                title: "Edit Username",
-                initialValue: _username,
-                hintText: "Enter new username",
-                onSave: (val) => setState(() => _username = val),
-                validator: (val) => val.isEmpty ? "Username cannot be empty" : "",
+                title: "Edit First Name",
+                initialValue: _firstName,
+                hintText: "Enter first name",
+                fieldKey: 'firstName',
               ),
             ),
             _buildProfileTile(
-              icon: Icons.phone,
-              title: "Phone Number",
-              value: _phoneNumber,
+              icon: Icons.person_outline,
+              title: "Last Name",
+              value: _lastName,
               onTap: () => _editTextField(
-                title: "Edit Phone Number",
-                initialValue: _phoneNumber,
-                hintText: "Enter 10-digit phone number",
-                keyboardType: TextInputType.phone,
-                onSave: (val) => setState(() => _phoneNumber = val),
-                validator: (val) {
-                  if (val.isEmpty) return "Phone number cannot be empty";
-                  if (val.length != 10 || !RegExp(r'^\d+$').hasMatch(val)) {
-                    return "Enter a valid 10-digit number";
-                  }
-                  return "";
-                },
+                title: "Edit Last Name",
+                initialValue: _lastName,
+                hintText: "Enter last name",
+                fieldKey: 'lastName',
               ),
             ),
             SwitchListTile(
@@ -203,18 +309,17 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
               onTap: () => _showConfirmDialog(
                 "Delete Account",
                 "Are you sure you want to delete your account?",
-                () {
-                  // todo
-                },
+                _deleteAccountWithReauth,
               ),
             ),
             _buildSimpleTile(
               icon: Icons.logout,
-              text: "Log out",
+              text: "Log Out",
               onTap: () => _showConfirmDialog(
                 "Log Out",
                 "Are you sure you want to log out?",
                 () {
+                  FirebaseAuth.instance.signOut();
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (_) =>  LoginScreen()),

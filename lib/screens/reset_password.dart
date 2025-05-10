@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/screens/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class ResetPasswordScreen extends StatefulWidget {
   final String contact;
@@ -15,11 +17,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+
+
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+
+
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -30,31 +36,55 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   }
 
-  void _resetPassword() {
-    if (_formKey.currentState!.validate()) {
-      print("Password reset for ${widget.contact}");
+void _resetPassword() async {
+  if (_formKey.currentState!.validate()) {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        await user.updatePassword(_newPasswordController.text);
+
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text("Success"),
+            content: Text("Your password has been updated."),
+            actions: [
+              TextButton(
+                child: Text("OK"),
+                onPressed: () => Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                  (route) => false,
+                ),
+              )
+            ],
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = "An error occurred.";
+      if (e.code == 'too-many-requests') {
+        message = "Too many attempts. Try again later.";
+      }
 
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: Text("Success"),
-          content: Text("Your password has been reset."),
+          title: Text("Error"),
+          content: Text(message),
           actions: [
             TextButton(
-              child: Text("Login"),
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => LoginScreen()),
-                  (route) => false,
-                );
-              },
+              child: Text("OK"),
+              onPressed: () => Navigator.pop(context),
             )
           ],
         ),
       );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -68,11 +98,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             children: [
               SizedBox(height: 40),
               Text(
-                "Set a new password for ${widget.contact}",
+                "Set a new password ${widget.contact}",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 30),
+
+
 
               TextFormField(
                 controller: _newPasswordController,
@@ -139,6 +171,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
+                    
                   ),
                 ),
               ),

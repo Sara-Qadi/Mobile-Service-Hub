@@ -1,5 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_service_hub/screens/create_account.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
 import 'package:mobile_service_hub/screens/role.dart';
@@ -21,6 +23,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _emailErrorVisible = false;
   bool _passwordErrorVisible = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('email');
+    final savedPassword = prefs.getString('password');
+
+    if (savedEmail != null && savedPassword != null) {
+      setState(() {
+        _emailController.text = savedEmail;
+        _passwordController.text = savedPassword;
+        _rememberMe = true;
+        _isLoginEnabled = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -40,18 +64,52 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-bool _isValidEmail(String email) {
-  return email.contains(RegExp(r'^[^@]+@[^@]+\.[^@]+'));
-}
+  bool _isValidEmail(String email) {
+    return email.contains(RegExp(r'^[^@]+@[^@]+\.[^@]+'));
+  }
 
   bool _isValidPassword(String password) {
     return password.length >= 6;
   }
 
-  void _login() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => ServicesPage()),
+  Future<void> _login() async {
+    setState(() => _isLoading = true);
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (_rememberMe) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('email', _emailController.text.trim());
+        await prefs.setString('password', _passwordController.text.trim());
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('email');
+        await prefs.remove('password');
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ServicesPage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Login failed');
+    } catch (e) {
+      _showError('Something went wrong. Please try again.');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 
@@ -86,15 +144,15 @@ bool _isValidEmail(String email) {
               showError: _passwordErrorVisible,
               errorText: "Password must be at least 6 characters",
               toggleObscure: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
+                setState(() => _obscurePassword = !_obscurePassword);
               },
               onChanged: (_) => _updateButtonState(),
             ),
             _buildRememberMeAndForgot(),
             const SizedBox(height: 20),
-            _buildLoginButton(),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildLoginButton(),
             const SizedBox(height: 20),
             _buildOrDivider(),
             const SizedBox(height: 20),
@@ -116,9 +174,7 @@ bool _isValidEmail(String email) {
             Checkbox(
               value: _rememberMe,
               onChanged: (value) {
-                setState(() {
-                  _rememberMe = value!;
-                });
+                setState(() => _rememberMe = value!);
               },
               visualDensity: VisualDensity.compact,
             ),
@@ -144,7 +200,9 @@ bool _isValidEmail(String email) {
         elevation: 6,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        backgroundColor: _isLoginEnabled ? AppColors.primary : AppColors.disabled,
+        backgroundColor: _isLoginEnabled
+            ? AppColors.primary
+            : AppColors.disabled,
       ),
       onPressed: _isLoginEnabled ? _login : null,
       child: const Text(

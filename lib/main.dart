@@ -10,7 +10,11 @@ import 'screen/ProviderDetailsPage.dart';
 import 'views/services_page.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'widget/bottom_nav_bar.dart';
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+void main() async{
+   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+  );
   debugPrintRebuildDirtyWidgets = false;
   runApp(const MyApp());
 }
