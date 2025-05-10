@@ -32,9 +32,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   bool _isValidPassword(String password) {
-    return password.length >= 6;
+  final passwordRegex = RegExp(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$',
+  );
+  return passwordRegex.hasMatch(password);
+}
 
-  }
 
 void _resetPassword() async {
   if (_formKey.currentState!.validate()) {
@@ -124,14 +127,15 @@ void _resetPassword() async {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter a new password.";
-                  }
-                  if (!_isValidPassword(value)) {
-                    return "Password must be at least 6 characters.";
-                  }
-                  return null;
-                },
+                if (value == null || value.isEmpty) {
+                  return "Please enter a new password.";
+                }
+                if (!_isValidPassword(value)) {
+                  return "Password must be at least 6 characters,\ninclude uppercase, lowercase, number, and special character.";
+                }
+                return null;
+              },
+
               ),
               SizedBox(height: 20),
 

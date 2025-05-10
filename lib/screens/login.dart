@@ -72,37 +72,50 @@ class _LoginScreenState extends State<LoginScreen> {
     return password.length >= 6;
   }
 
-  Future<void> _login() async {
-    setState(() => _isLoading = true);
+Future<void> _login() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+  setState(() {
+    _emailErrorVisible = email.isEmpty || !_isValidEmail(email);
+    _passwordErrorVisible = password.isEmpty || !_isValidPassword(password);
+  });
 
-      if (_rememberMe) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('email', _emailController.text.trim());
-        await prefs.setString('password', _passwordController.text.trim());
-      } else {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('email');
-        await prefs.remove('password');
-      }
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => ServicesPage()),
-      );
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'Login failed');
-    } catch (e) {
-      _showError('Something went wrong. Please try again.');
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  if (_emailErrorVisible || _passwordErrorVisible) {
+    _showError('Please fix the errors before logging in.');
+    return;
   }
+
+  setState(() => _isLoading = true);
+
+  try {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('email', email);
+      await prefs.setString('password', password);
+    } else {
+      await prefs.remove('email');
+      await prefs.remove('password');
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => ServicesPage()),
+    );
+  } on FirebaseAuthException catch (e) {
+    _showError(e.message ?? 'Login failed');
+  } catch (e) {
+    _showError('Something went wrong. Please try again.');
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

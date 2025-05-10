@@ -28,7 +28,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _sendResetLink() async {
-    final contact = _contactController.text.trim();
+   final contact = _contactController.text.trim();
+
+if (_selectedMethod == 'email') {
+  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  if (!emailRegex.hasMatch(contact)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please enter a valid email address.")),
+    );
+    return;
+  }
+} else {
+  final phoneRegex = RegExp(r'^\+?[0-9]{10,13}$'); 
+  if (!phoneRegex.hasMatch(contact)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please enter a valid phone number.")),
+    );
+    return;
+  }
+}
+
 
     if (_selectedMethod == 'email') {
  

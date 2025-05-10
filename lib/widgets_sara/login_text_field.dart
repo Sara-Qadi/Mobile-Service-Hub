@@ -22,7 +22,7 @@ class LoginTextField extends StatelessWidget {
     this.errorText = '',
     this.toggleObscure,
     this.onChanged,
-    this.keyboardType = TextInputType.text,
+    this.keyboardType = TextInputType.emailAddress,
   }) : super(key: key);
 
   @override

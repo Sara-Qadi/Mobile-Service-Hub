@@ -36,56 +36,78 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Future<void> _createAccount() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showError('Passwords do not match');
-      return;
-    }
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+  final confirmPassword = _confirmPasswordController.text.trim();
+  final firstName = _firstNameController.text.trim();
+  final lastName = _lastNameController.text.trim();
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Create user with email and password
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      User? user = userCredential.user;
-
-      if (user != null) {
-        // Save user information to Firestore, including the selected role
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
-          'uid': user.uid,
-          'firstName': _firstNameController.text.trim(),
-          'lastName': _lastNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'location': _locationController.text.trim(),
-          'role': widget.role, // Save role (Customer, Admin, etc.)
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
-        // Navigate to the login screen after successful registration
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'An error occurred');
-    } catch (e) {
-      _showError('Something went wrong');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  if (firstName.isEmpty || lastName.isEmpty) {
+    _showError('Please enter your first and last name');
+    return;
   }
+
+  if (!RegExp(r"^[a-zA-Z]+$").hasMatch(firstName) ||
+      !RegExp(r"^[a-zA-Z]+$").hasMatch(lastName)) {
+    _showError('Names should only contain letters');
+    return;
+  }
+
+  if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email)) {
+    _showError('Invalid email format');
+    return;
+  }
+
+if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$')
+    .hasMatch(password)) {
+  _showError(
+      'Password must be at least 6 characters and include:\n• Uppercase\n• Lowercase\n• Number\n• Special character');
+  return;
+}
+
+
+  if (password != confirmPassword) {
+    _showError('Passwords do not match');
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    User? user = userCredential.user;
+
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'location': _locationController.text.trim(),
+        'role': widget.role,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    _showError(e.message ?? 'An error occurred');
+  } catch (e) {
+    _showError('Something went wrong');
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -141,6 +163,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               label: 'Email',
               hint: 'Enter your email',
               onChanged: (_) => _updateButtonState(),
+                keyboardType: TextInputType.emailAddress,
             ),
             CustomTextField(
               controller: _passwordController,
