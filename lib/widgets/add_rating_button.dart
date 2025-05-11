@@ -7,6 +7,8 @@ import '../views/rating_page.dart';
 class AddRatingButton extends StatelessWidget {
   final Map<String, dynamic> service;
   final Function(Map<String, dynamic>) onRatingSubmitted;
+  static const double borderRadiusValue = 15.0;
+  static const double borderWidth = 2.0;
 
   const AddRatingButton({required this.service, required this.onRatingSubmitted});
 
@@ -18,8 +20,8 @@ class AddRatingButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(borderRadiusValue),
+          side: BorderSide(color: AppColors.primary, width: borderWidth),
         ),
       ),
       onPressed: () {
