@@ -6,6 +6,9 @@ import 'package:mobile_service_hub/theme/app_colors.dart';
 class ImagePickerWidget extends StatelessWidget {
   final Uint8List? imageBytes;
   final Function(Uint8List) onImageSelected;
+  static const double containerSize = 150.0;
+  static const double borderRadiusValue = 15.0;
+  static const double borderWidth = 2.0;
 
   ImagePickerWidget({required this.imageBytes, required this.onImageSelected});
 
@@ -53,17 +56,17 @@ class ImagePickerWidget extends StatelessWidget {
     return GestureDetector(
       onTap: () => _pickImage(context),
       child: Container(
-        width: 150,
-        height: 150,
+        width: containerSize,
+        height: containerSize,
         decoration: BoxDecoration(
           color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(borderRadiusValue),
+          border: Border.all(color: AppColors.primary, width: borderWidth),
         ),
         child: imageBytes == null
             ? Center(child: Icon(Icons.add_a_photo, color:AppColors.primary))
             : ClipRRect(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(borderRadiusValue),
                 child: Image.memory(
                   imageBytes!,
                   fit: BoxFit.cover,

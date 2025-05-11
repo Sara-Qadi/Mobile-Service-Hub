@@ -2,17 +2,19 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/main.dart';
 
 import 'package:mobile_service_hub/views/services_display_page.dart';
 import 'package:mobile_service_hub/views/services_provider_page.dart';
 
+import '../widget/bottom_nav_bar.dart';
 import 'add_service_page.dart';
 import 'view_service_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'update_service.dart';
-import '../widget/bottom_nav_bar.dart';
+
 class ServicesPage extends StatefulWidget {
   @override
   _ServicesPageState createState() => _ServicesPageState();
@@ -21,6 +23,7 @@ class ServicesPage extends StatefulWidget {
 class _ServicesPageState extends State<ServicesPage> {
   List<Map<String, dynamic>> services = [];
   final TextEditingController _searchController = TextEditingController();
+   final _collection = FirebaseFirestore.instance.collection('services');
 
   @override
   void initState() {
@@ -30,43 +33,57 @@ class _ServicesPageState extends State<ServicesPage> {
   }
 
   Future<void> _loadServices() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? servicesJson = prefs.getString('services');
-    if (servicesJson != null) {
-      List<dynamic> decoded = jsonDecode(servicesJson);
-      services = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
-      setState(() {});
-    }
+    final snapshot = await _collection.get();
+    services = snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id; 
+      return data;
+    }).toList();
+    setState(() {});
+  }
+   Future<void> _addService(Map<String, dynamic> newService) async {
+    final doc = await _collection.add(newService);
+    newService['id'] = doc.id;
+    services.add(newService);
+    setState(() {});
   }
 
-  Future<void> _saveServices() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('services', jsonEncode(services));
-  }
-
-  void _addService(Map<String, dynamic> newService) {
-    setState(() {
-      services.add(newService);
-    });
-    _saveServices();
-  }
-
-  void _updateService(Map<String, dynamic> service) async {
+  Future<void> _updateService(Map<String, dynamic> service) async {
     final updatedService = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => UpdateService(service: service)),
+      MaterialPageRoute(
+        builder: (_) => UpdateService(service: service),
+      ),
     );
 
     if (updatedService != null) {
-      setState(() {
-        int index = services.indexWhere((s) => s['name'] == service['name']);
-        if (index != -1) {
-          services[index] = updatedService;
-        }
-      });
-      _saveServices();
+      await _collection.doc(service['id']).update(updatedService);
+      int index = services.indexWhere((s) => s['id'] == service['id']);
+      if (index != -1) {
+        services[index] = {...updatedService, 'id': service['id']};
+        setState(() {});
+      }
     }
   }
+
+  Future<void> _deleteService(Map<String, dynamic> service) async {
+  final serviceId = service['id'];
+
+  final ratingDocs = await FirebaseFirestore.instance
+      .collection('ratings')
+      .where('serviceId', isEqualTo: serviceId)
+      .get();
+
+  for (var doc in ratingDocs.docs) {
+    await doc.reference.delete();
+  }
+
+
+  await _collection.doc(serviceId).delete();
+
+  services.removeWhere((s) => s['id'] == serviceId);
+  setState(() {});
+}
 
   Widget _buildServiceCard(Map<String, dynamic> service) {
     Uint8List? imageBytes;
@@ -147,7 +164,7 @@ class _ServicesPageState extends State<ServicesPage> {
             setState(() {
               services.remove(service);
             });
-            _saveServices();
+            _deleteService(service);
             Navigator.of(context).pop();
           },
           child: Text("Delete", style: TextStyle(color: Colors.red)),
@@ -183,15 +200,23 @@ class _ServicesPageState extends State<ServicesPage> {
 
   Widget _buildAddServiceCard() {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => AddServicePage()),
-        );
-        if (result != null) {
-          _addService(result);
-        }
-      },
+     onTap: () async {
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => AddServicePage()),
+  );
+  if (result != null && result is String) {
+    final doc = await _collection.doc(result).get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      data['id'] = doc.id;
+      setState(() {
+        services.add(data);
+      });
+    }
+  }
+},
+
       child: Card(
         elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16),),
@@ -213,6 +238,28 @@ class _ServicesPageState extends State<ServicesPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+   void _showDeleteDialog(Map<String, dynamic> service) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Delete Service"),
+        content: Text("Are you sure you want to delete this service?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteService(service);
+            },
+            child: Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

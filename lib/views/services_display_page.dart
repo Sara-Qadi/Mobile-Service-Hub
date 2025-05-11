@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'view_service_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ServicesDisplayPage extends StatefulWidget {
   final List<Map<String, dynamic>> services;
@@ -21,13 +22,23 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
   void initState() {
     super.initState();
     filteredServices = widget.services;
-    _searchController.addListener(_filterServices);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _storeSearchQuery(String query) async {
+    if (query.trim().isEmpty) return;
+
+    final searchCollection =
+        FirebaseFirestore.instance.collection('search-display');
+    await searchCollection.add({
+      'query': query,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
   }
 
   List<String> getCategories() {
@@ -58,51 +69,50 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
     setState(() {
       selectedCategory = category;
     });
-    _filterServices(); 
+    _filterServices();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-              title: Row(
-  mainAxisAlignment: MainAxisAlignment.start,
-  children: [
-    Text(
-      "Display Services",
-      style: TextStyle(fontWeight: FontWeight.bold),
-    ),
-  ],
-),
-
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              "Display Services",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
         backgroundColor: Colors.teal,
         actions: [
-         Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-  child: Container(
-    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-   
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: selectedCategory,
-        dropdownColor: Colors.white,
-        style: TextStyle(color: Colors.teal, fontWeight: FontWeight.w600),
-        items: getCategories().map((category) {
-          return DropdownMenuItem(
-            value: category,
-            child: Text(
-              category,
-              style: TextStyle(color: Colors.black),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: selectedCategory,
+                  dropdownColor: Colors.white,
+                  style: TextStyle(
+                      color: Colors.teal, fontWeight: FontWeight.w600),
+                  items: getCategories().map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(
+                        category,
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: _onCategoryChanged,
+                  icon: Icon(Icons.filter_list,
+                      color: Color.fromARGB(255, 11, 11, 11)),
+                ),
+              ),
             ),
-          );
-        }).toList(),
-        onChanged: _onCategoryChanged,
-        icon: Icon(Icons.filter_list, color: Color.fromARGB(255, 11, 11, 11)),
-      ),
-    ),
-  ),
-),
-
+          ),
         ],
       ),
       body: Column(
@@ -111,6 +121,12 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
             padding: EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
+              onChanged: (value) {
+                _filterServices(); 
+              },
+              onSubmitted: (value) {
+                _storeSearchQuery(value);
+              },
               decoration: InputDecoration(
                 hintText: "Search services...",
                 prefixIcon: Icon(Icons.search, color: Colors.teal),
@@ -152,7 +168,7 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Image with overlay name
+                       
                         Expanded(
                           child: Stack(
                             children: [
@@ -201,7 +217,7 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
                           ),
                         ),
 
-                        // Service name
+                    
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text(

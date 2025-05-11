@@ -52,7 +52,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
     setState(() {
       service['ratings'].add(newRating);
     });
-    _saveRatings(); // ⬅ حفظ التقييم في التخزين
+    _saveRatings(); 
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Your rating has been submitted!')),

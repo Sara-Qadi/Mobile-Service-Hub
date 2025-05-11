@@ -3,7 +3,7 @@ import 'package:mobile_service_hub/theme/app_colors.dart';
 
 class CommentFieldWidget extends StatelessWidget {
   final TextEditingController controller;
-
+ static const double borderRadiusValue = 15.0;
   CommentFieldWidget({required this.controller});
 
   @override
@@ -13,7 +13,7 @@ class CommentFieldWidget extends StatelessWidget {
       decoration: InputDecoration(
         labelText: 'Your Comment (optional)',
         prefixIcon: Icon(Icons.comment, color: AppColors.primary),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(borderRadiusValue)),
         filled: true,
         fillColor:AppColors.background,
       ),
