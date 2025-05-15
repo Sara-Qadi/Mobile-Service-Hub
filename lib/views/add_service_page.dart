@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import '../widgets/image_picker_widget.dart';
 import '../widgets/service_form_field.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddServicePage extends StatefulWidget {
   @override
@@ -96,30 +97,36 @@ class _AddServicePageState extends State<AddServicePage> {
             ),
             SizedBox(height: spaceLarge),
             ElevatedButton(
-  onPressed: isFormValid
-      ? () async {
-          final newService = {
-            'user': userController.text,
-            'name': nameController.text,
-            'details': detailsController.text,
-            'price': priceController.text,
-            'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : '',
-           // 'ratings': [],
-          };
-
-          try {
-            final docRef = await FirebaseFirestore.instance
-                .collection('services')
-                .add(newService);
-            await docRef.update({'id': docRef.id}); 
-
-            Navigator.pop(context, docRef.id); 
-          } catch (e) {
-            print("Error adding service: $e");
-            
-          }
+onPressed: isFormValid
+    ? () async {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          print("User not logged in!");
+          return;
         }
-      : null,
+
+        final newService = {
+          'user': userController.text,
+          'userId': user.uid, // ✅ Add this
+          'name': nameController.text,
+          'details': detailsController.text,
+          'price': priceController.text,
+          'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : '',
+        };
+
+        try {
+          final docRef = await FirebaseFirestore.instance
+              .collection('services')
+              .add(newService);
+          await docRef.update({'id': docRef.id}); 
+
+          Navigator.pop(context, docRef.id); 
+        } catch (e) {
+          print("Error adding service: $e");
+        }
+      }
+    : null,
+
   child: Padding(
     padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal, vertical: buttonPaddingVertical),
     child: Text('Add Service', style: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.bold)),

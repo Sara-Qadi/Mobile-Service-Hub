@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -71,7 +72,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isValidPassword(String password) {
     return password.length >= 6;
   }
-
 Future<void> _login() async {
   final email = _emailController.text.trim();
   final password = _passwordController.text.trim();
@@ -89,11 +89,36 @@ Future<void> _login() async {
   setState(() => _isLoading = true);
 
   try {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
+    User? user = userCredential.user;
 
+    if (user == null) {
+      _showError('Login failed. Please try again.');
+      return;
+    }
+
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (!userDoc.exists) {
+      _showError('User data not found.');
+      return;
+    }
+
+    final userData = userDoc.data();
+    final status = userData?['status'] ?? 'pending';
+    final role = userData?['role'] ?? 'User';
+
+    if (role == 'Service Provider' && status == 'pending') {
+      _showError('Your account is awaiting admin approval.');
+      await FirebaseAuth.instance.signOut();
+      return;
+    }
+
+    // Save credentials and user info
     final prefs = await SharedPreferences.getInstance();
     if (_rememberMe) {
       await prefs.setString('email', email);
@@ -103,9 +128,13 @@ Future<void> _login() async {
       await prefs.remove('password');
     }
 
+    // Save uid and role to prefs
+    await prefs.setString('uid', user.uid);
+    await prefs.setString('role', role);
+
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => ServicesPage()),
+      MaterialPageRoute(builder: (_) => ServicesPage()), // Your main page
     );
   } on FirebaseAuthException catch (e) {
     _showError(e.message ?? 'Login failed');
@@ -115,6 +144,7 @@ Future<void> _login() async {
     setState(() => _isLoading = false);
   }
 }
+
 
 
   void _showError(String message) {

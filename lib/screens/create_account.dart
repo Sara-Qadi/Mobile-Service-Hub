@@ -38,86 +38,111 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     });
   }
 
-  Future<void> _createAccount() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final confirmPassword = _confirmPasswordController.text.trim();
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
+Future<void> _createAccount() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+  final confirmPassword = _confirmPasswordController.text.trim();
+  final firstName = _firstNameController.text.trim();
+  final lastName = _lastNameController.text.trim();
 
-    if (firstName.isEmpty || lastName.isEmpty) {
-      _showError('Please enter your first and last name');
-      return;
-    }
+  if (firstName.isEmpty || lastName.isEmpty) {
+    _showError('Please enter your first and last name');
+    return;
+  }
 
-    if (!RegExp(r"^[a-zA-Z]+$").hasMatch(firstName) ||
-        !RegExp(r"^[a-zA-Z]+$").hasMatch(lastName)) {
-      _showError('Names should only contain letters');
-      return;
-    }
+  if (!RegExp(r"^[a-zA-Z]+$").hasMatch(firstName) ||
+      !RegExp(r"^[a-zA-Z]+$").hasMatch(lastName)) {
+    _showError('Names should only contain letters');
+    return;
+  }
 
-    if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email)) {
-      _showError('Invalid email format');
-      return;
-    }
+  if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email)) {
+    _showError('Invalid email format');
+    return;
+  }
 
-    if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$')
-        .hasMatch(password)) {
-      _showError(
-          'Password must be at least 6 characters and include:\n• Uppercase\n• Lowercase\n• Number\n• Special character');
-      return;
-    }
+  if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$')
+      .hasMatch(password)) {
+    _showError(
+        'Password must be at least 6 characters and include:\n• Uppercase\n• Lowercase\n• Number\n• Special character');
+    return;
+  }
 
-    if (password != confirmPassword) {
-      _showError('Passwords do not match');
-      return;
-    }
+  if (password != confirmPassword) {
+    _showError('Passwords do not match');
+    return;
+  }
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+  try {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
 
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
 
-      User? user = userCredential.user;
+    User? user = userCredential.user;
 
-      if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'firstName': firstName,
-          'lastName': lastName,
-          'email': email,
-          'location': {
-            'latitude': position.latitude,
-            'longitude': position.longitude,
-          },
-          'role': widget.role,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+    if (user != null) {
+      final String status = widget.role == 'Service Provider' ? 'pending' : 'approved';
 
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      _showError(e.message ?? 'An error occurred');
-    } catch (e) {
-      _showError('Something went wrong');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'location': {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        },
+        'role': widget.role,
+        'status': status,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (widget.role == 'Service Provider') {
+        // Notify admin about new provider registration
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'type': 'provider_signup',
+          'providerId': user.uid,
+          'providerName': '$firstName $lastName',
+          'timestamp': FieldValue.serverTimestamp(),
+          'status': 'unread',
         });
       }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.role == 'Service Provider'
+              ? 'Account created. Waiting for admin approval.'
+              : 'Account created successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    _showError(e.message ?? 'An error occurred');
+  } catch (e) {
+    _showError('Something went wrong');
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
+
 
 Future<void> _fetchLocation() async {
   try {

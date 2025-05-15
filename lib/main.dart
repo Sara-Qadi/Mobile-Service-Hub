@@ -6,7 +6,7 @@ import 'package:mobile_service_hub/screens/customer_profile.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
 import 'screen/Bookingform.dart';
 import 'screen/NotificationsPage.dart';
-import 'screen/ProviderDetailsPage.dart';
+import 'screen/ProviderClientsTableView.dart';
 import 'views/services_page.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'widget/bottom_nav_bar.dart';
