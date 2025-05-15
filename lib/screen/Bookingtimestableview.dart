@@ -3,50 +3,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import '../widget/booking_widgets/booking_details_card.dart';
 import '../widget/bottom_nav_bar.dart';
-
 class BookingTimesTableView extends StatefulWidget {
   final Map<String, String> bookingData;
-
   const BookingTimesTableView({
     Key? key,
     required this.bookingData,
   }) : super(key: key);
-
   @override
   State<BookingTimesTableView> createState() => _BookingTimesTableViewState();
 }
-
 class _BookingTimesTableViewState extends State<BookingTimesTableView> {
   bool _isLoading = true;
   bool _hasError = false;
   List<Map<String, String>> _allBookings = [];
   String _errorMessage = '';
-
   @override
   void initState() {
     super.initState();
     _fetchBookingsFromFirebase();
   }
-
   Future<void> _fetchBookingsFromFirebase() async {
     try {
       final fetchOperation = FirebaseFirestore.instance
           .collection('bookingnow')
           .orderBy('timestamp', descending: true)
           .get();
-
       final querySnapshot = await fetchOperation.timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           throw TimeoutException('Connection timed out');
         },
       );
-
       List<Map<String, String>> bookings = [];
-      
       for (var doc in querySnapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        
         Map<String, String> bookingMap = {
           'name': data['name']?.toString() ?? '',
           'time': data['time']?.toString() ?? '',
@@ -57,10 +47,8 @@ class _BookingTimesTableViewState extends State<BookingTimesTableView> {
           'serviceId': data['serviceId']?.toString() ?? '',
           'id': doc.id,
         };
-        
         bookings.add(bookingMap);
       }
-
       if (mounted) {
         setState(() {
           _allBookings = bookings;
@@ -77,14 +65,12 @@ class _BookingTimesTableViewState extends State<BookingTimesTableView> {
       } else {
         errorMsg = 'Error fetching bookings: $e';
       }
-
       if (mounted) {
         setState(() {
           _isLoading = false;
           _hasError = true;
           _errorMessage = errorMsg;
         });
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMsg),
@@ -95,7 +81,6 @@ class _BookingTimesTableViewState extends State<BookingTimesTableView> {
       }
     }
   }
-
   void _retryFetch() {
     setState(() {
       _isLoading = true;
@@ -104,7 +89,6 @@ class _BookingTimesTableViewState extends State<BookingTimesTableView> {
     });
     _fetchBookingsFromFirebase();
   }
-
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -260,3 +244,12 @@ class _BookingTimesTableViewState extends State<BookingTimesTableView> {
     );
   }
 }
+
+
+
+
+
+
+
+
+

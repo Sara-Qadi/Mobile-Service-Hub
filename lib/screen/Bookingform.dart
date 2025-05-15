@@ -1,13 +1,13 @@
-
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widget/booking_widgets/booking_form_fields.dart';
 import '../widget/bottom_nav_bar.dart';
-import 'Bookingconfirmation.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BookingForm extends StatefulWidget {
-  const BookingForm({super.key});
+  final Map<String, dynamic> service;
+
+  const BookingForm({super.key, required this.service});
 
   @override
   State<BookingForm> createState() => _BookingFormState();
@@ -19,50 +19,28 @@ class _BookingFormState extends State<BookingForm> {
   final _timeController = TextEditingController();
   final _dateController = TextEditingController();
 
-  String serviceName = "Loading...";
-  String serviceProvider = "Loading...";
-  String serviceId = "";
-  
+  late String serviceName;
+  late String serviceProvider;
+  late String serviceId;
+  late String providerId;
+
   bool _isFormValid = false;
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+
     _nameController.addListener(_validateForm);
     _locationController.addListener(_validateForm);
     _timeController.addListener(_validateForm);
     _dateController.addListener(_validateForm);
-    
-    _fetchServiceData();
-  }
 
-  Future<void> _fetchServiceData() async {
-    try {
-      DocumentSnapshot serviceDoc = await FirebaseFirestore.instance
-          .collection('services')
-          .doc('Re7HlE6QFbLxeTrIAIUe')
-          .get();
-      
-      if (serviceDoc.exists) {
-        Map<String, dynamic> data = serviceDoc.data() as Map<String, dynamic>;
-        setState(() {
-          serviceName = data['name'] ?? "Service Name";
-          serviceProvider = data['user'] ?? "Service Provider Name";
-          serviceId = serviceDoc.id;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error fetching service data: $e');
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    serviceName = widget.service['name'] ?? 'Service Name';
+    serviceProvider = widget.service['user'] ?? 'Service Provider Name';
+    serviceId = widget.service['id'] ?? '';
+    providerId = widget.service['userId'] ?? '';
+
+    _validateForm();
   }
 
   @override
@@ -104,12 +82,57 @@ class _BookingFormState extends State<BookingForm> {
     );
     if (pickedDate != null) {
       setState(() {
-        _dateController.text = "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+        _dateController.text =
+            "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
       });
     }
   }
 
-  void _submitBooking() {
+  DateTime? parseSelectedDateTime(String dateText, String timeText) {
+    try {
+      final parts = dateText.split('/');
+      if (parts.length != 3) return null;
+      final day = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+
+      final timeOfDay = _parseTimeOfDay(timeText);
+      if (timeOfDay == null) return null;
+
+      return DateTime(year, month, day, timeOfDay.hour, timeOfDay.minute);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  TimeOfDay? _parseTimeOfDay(String timeString) {
+    try {
+      final format = timeString.toLowerCase().trim();
+      final isPm = format.contains('pm');
+      final cleanStr = format.replaceAll(RegExp(r'[^0-9:]'), '');
+      final parts = cleanStr.split(':');
+      if (parts.length != 2) return null;
+      int hour = int.parse(parts[0]);
+      final int minute = int.parse(parts[1]);
+
+      if (isPm && hour < 12) hour += 12;
+      if (!isPm && hour == 12) hour = 0;
+
+      return TimeOfDay(hour: hour, minute: minute);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _submitBooking() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to book a service.')),
+      );
+      return;
+    }
+
     if (!_isFormValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
@@ -117,20 +140,62 @@ class _BookingFormState extends State<BookingForm> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookingConfirmation(
-          name: _nameController.text,
-          location: _locationController.text,
-          time: _timeController.text,
-          date: _dateController.text,
-          service: serviceName,
-          provider: serviceProvider,
-          serviceId: serviceId,
-        ),
-      ),
-    );
+    final bookingDateTime = parseSelectedDateTime(_dateController.text, _timeController.text);
+    if (bookingDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid date or time')),
+      );
+      return;
+    }
+
+    try {
+      final bookingRef = await FirebaseFirestore.instance.collection('bookings').add({
+        'name': _nameController.text,
+        'location': _locationController.text,
+        'time': Timestamp.fromDate(bookingDateTime),
+        'date': _dateController.text,
+        'service': serviceName,
+        'serviceId': serviceId,
+        'provider': serviceProvider,
+        'providerId': providerId,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+        'clientId': user.uid,
+      });
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': 'New Booking Request',
+        'message': '${_nameController.text} requested a $serviceName service',
+        'time': FieldValue.serverTimestamp(),
+        'isRead': false,
+        'type': 'clientRequest',
+        'receiver': serviceProvider,
+        'providerId': providerId,
+        'bookingId': bookingRef.id,
+        'clientId': user.uid,
+        'clientData': {
+          'name': _nameController.text,
+          'location': _locationController.text,
+          'service': serviceName,
+          'date': _dateController.text,
+          'time': _timeController.text,
+          'notes': '',
+              'clientId': user.uid,
+        },
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking request sent! Awaiting provider approval.')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      print("Error creating booking: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking failed. Please try again')),
+      );
+    }
   }
 
   @override
@@ -145,79 +210,65 @@ class _BookingFormState extends State<BookingForm> {
           ),
         ),
       ),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'The service: $serviceName',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'The service Provider: $serviceProvider',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    LabeledTextField(
-                      label: 'Name',
-                      hintText: 'Enter your name',
-                      controller: _nameController,
-                    ),
-                    
-                    LabeledTextField(
-                      label: 'Location',
-                      hintText: 'Enter your location',
-                      controller: _locationController,
-                    ),
-                    
-                    LabeledTextField(
-                      label: 'Time',
-                      hintText: 'Enter the time you want',
-                      controller: _timeController,
-                      readOnly: true,
-                      onTap: _selectTime,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.access_time),
-                        onPressed: _selectTime,
-                      ),
-                    ),
-                    
-                    LabeledTextField(
-                      label: 'Date',
-                      hintText: 'Enter the date you want',
-                      controller: _dateController,
-                      readOnly: true,
-                      onTap: _selectDate,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.calendar_today),
-                        onPressed: _selectDate,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    ActionButton(
-                      text: 'Booking now',
-                      onPressed: _submitBooking,
-                      isEnabled: _isFormValid,
-                      backgroundColor: Colors.teal,
-                    ),
-                  ],
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'The service: $serviceName',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'The service Provider: $serviceProvider',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 24),
+              LabeledTextField(
+                label: 'Name',
+                hintText: 'Enter your name',
+                controller: _nameController,
+              ),
+              LabeledTextField(
+                label: 'Location',
+                hintText: 'Enter your location',
+                controller: _locationController,
+              ),
+              LabeledTextField(
+                label: 'Time',
+                hintText: 'Enter the time you want',
+                controller: _timeController,
+                readOnly: true,
+                onTap: _selectTime,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: _selectTime,
                 ),
               ),
-            ),
+              LabeledTextField(
+                label: 'Date',
+                hintText: 'Enter the date you want',
+                controller: _dateController,
+                readOnly: true,
+                onTap: _selectDate,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _selectDate,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ActionButton(
+                text: 'Book Now',
+                onPressed: _submitBooking,
+                isEnabled: _isFormValid,
+                backgroundColor: Colors.teal,
+              ),
+            ],
+          ),
+        ),
+      ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
   }

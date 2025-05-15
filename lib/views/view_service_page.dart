@@ -23,6 +23,9 @@ class _ViewServicePageState extends State<ViewServicePage> {
   void initState() {
     super.initState();
     service = Map<String, dynamic>.from(widget.service);
+      if (!service.containsKey('userId') && widget.service['userId'] != null) {
+    service['userId'] = widget.service['userId'];
+  }
     service['ratings'] = [];
     _loadRatings();
   }
@@ -176,29 +179,38 @@ class _ViewServicePageState extends State<ViewServicePage> {
                     Align(
                       alignment: Alignment.center,
                       child: ElevatedButton.icon(
-                        icon: const Icon(Icons.calendar_today, size: 14),
-                        label: const Text(
-                          'Book Now',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors.teal,
-                          minimumSize: const Size(80, 30),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(color: Colors.white, width: 1.5),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BookingForm(),
-                            ),
-                          );
-                        },
-                      ),
+  icon: const Icon(Icons.calendar_today, size: 14),
+  label: const Text(
+    'Book Now',
+    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  ),
+  style: ElevatedButton.styleFrom(
+    primary: Colors.teal,
+    minimumSize: const Size(80, 30),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+      side: const BorderSide(color: Colors.white, width: 1.5),
+    ),
+  ),
+ onPressed: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => BookingForm(
+        service: {
+          'id': service['id'],
+          'name': service['name'],
+          'user': service['user'],
+          'userId': service['userId'], // ✅ This is now passed correctly
+        },
+      ),
+    ),
+  );
+},
+
+),
+
                     ),
                     const SizedBox(height: 16),
                     _buildDetailCard('Service Provider', service['user'] ?? 'N/A'),
