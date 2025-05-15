@@ -3,6 +3,11 @@ import 'package:mobile_service_hub/theme/app_colors.dart';
 
 class UpdateButtonWidget extends StatelessWidget {
   final Function() onPressed;
+  static const double horizontalPadding = 24.0;
+  static const double verticalPadding = 12.0;
+  static const double fontSizeValue = 16.0;
+  static const double borderRadiusValue = 10.0;
+
 
   UpdateButtonWidget({required this.onPressed});
 
@@ -11,16 +16,16 @@ class UpdateButtonWidget extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
         child: Text(
           'Update',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: fontSizeValue, fontWeight: FontWeight.bold),
         ),
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(borderRadiusValue),
         ),
       ),
     );
