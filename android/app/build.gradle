@@ -1,5 +1,4 @@
 import org.gradle.api.GradleException
-
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -42,8 +41,8 @@ android {
         applicationId "com.example.mobile_service_hub"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 22
-            multiDexEnabled true
+    minSdkVersion 19
+
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

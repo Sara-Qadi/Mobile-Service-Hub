@@ -5,16 +5,17 @@ import '../theme/app_colors.dart';
 class RatingStarsWidget extends StatelessWidget {
   final double rating;
   final Function(double) onRatingChanged;
-
+ static const int numberOfStars = 5;
+  static const double sizeIcon = 36;
   RatingStarsWidget({required this.rating, required this.onRatingChanged});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (index) {
+      children: List.generate(numberOfStars, (index) {
         return IconButton(
-          iconSize: 36,
+          iconSize: sizeIcon,
           icon: Icon(
             index < rating ? Icons.star : Icons.star_border,
             color:AppColors.primary,

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../widget/booking_widgets/booking_details_card.dart';
 import '../widget/booking_widgets/booking_form_fields.dart';
@@ -12,6 +13,7 @@ class BookingConfirmation extends StatelessWidget {
   final String date;
   final String service;
   final String provider;
+  final String serviceId;
 
   const BookingConfirmation({
     Key? key,
@@ -21,7 +23,54 @@ class BookingConfirmation extends StatelessWidget {
     required this.date,
     required this.service,
     required this.provider,
+    required this.serviceId,
   }) : super(key: key);
+
+
+  Future<String?> _saveBookingToFirebase() async {
+    try {
+      final docRef = await FirebaseFirestore.instance.collection('bookingnow').add({
+        'name': name,
+        'location': location,
+        'time': time,
+        'date': date,
+        'service': service,
+        'provider': provider,
+        'serviceId': serviceId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      
+      return docRef.id;
+    } catch (e) {
+      print('Error saving booking to Firebase: $e');
+      return null;
+    }
+  }
+
+  Future<void> _deleteCancelledBooking(BuildContext context) async {
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('bookingnow')
+          .where('name', isEqualTo: name)
+          .where('location', isEqualTo: location)
+          .where('time', isEqualTo: time)
+          .where('date', isEqualTo: date)
+          .where('service', isEqualTo: service)
+          .where('provider', isEqualTo: provider)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        await querySnapshot.docs.first.reference.delete();
+        print('Booking deleted successfully');
+      }
+    } catch (e) {
+      print('Error deleting booking: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to cancel booking')),
+      );
+    }
+  }
 
   void _showCancelConfirmationDialog(BuildContext context) {
     showDialog(
@@ -42,6 +91,8 @@ class BookingConfirmation extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
+                _deleteCancelledBooking(context);
+                
                 Navigator.of(context).pop(); 
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -62,6 +113,8 @@ class BookingConfirmation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    _saveBookingToFirebase();
+
     final Map<String, String> bookingData = {
       'name': name,
       'service': service,
@@ -69,6 +122,7 @@ class BookingConfirmation extends StatelessWidget {
       'location': location,
       'date': date,
       'time': time,
+      'serviceId': serviceId,
     };
 
     return Scaffold(
@@ -106,7 +160,7 @@ class BookingConfirmation extends StatelessWidget {
               const SizedBox(height: 30),
               BookingDetailsCard(
                 bookingData: bookingData,
-                title: 'Booking Confirmation',
+                title: 'Booking Information',
               ),
               const SizedBox(height: 30),
               ActionButton(
