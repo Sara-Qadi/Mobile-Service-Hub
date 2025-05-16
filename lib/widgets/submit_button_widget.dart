@@ -3,6 +3,10 @@ import 'package:mobile_service_hub/theme/app_colors.dart';
 
 class SubmitButtonWidget extends StatelessWidget {
   final Function() onPressed;
+   static const double verticalPadding = 14.0;
+  static const double borderRadiusValue = 12.0;
+  static const double fontSizeValue = 16.0;
+  static const double iconSpacing = 8.0;
 
   SubmitButtonWidget({required this.onPressed});
 
@@ -13,8 +17,8 @@ class SubmitButtonWidget extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
-          padding: EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: EdgeInsets.symmetric(vertical: verticalPadding),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadiusValue)),
         ),
         onPressed: onPressed,
         child: Row(
@@ -22,9 +26,9 @@ class SubmitButtonWidget extends StatelessWidget {
           children: [
             Text(
               'Submit Rating',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: fontSizeValue, fontWeight: FontWeight.bold),
             ),
-            SizedBox(width: 8),
+            SizedBox(width: iconSpacing),
             Icon(Icons.send),
           ],
         ),

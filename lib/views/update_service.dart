@@ -6,7 +6,6 @@ import '../widgets/text_field_widget.dart';
 import '../widgets/update_button_widget.dart';
 import '../widgets/image_pickerr_widget.dart';
 
-
 class UpdateService extends StatefulWidget {
   final Map<String, dynamic> service;
 
@@ -23,6 +22,11 @@ class _UpdateServicePageState extends State<UpdateService> {
   final userController = TextEditingController();
 
   Uint8List? _imageBytes;
+   static const double paddingAll = 16.0;
+  static const double spacingSmall = 16.0;
+  static const double spacingMedium = 20.0;
+  static const double spacingLarge = 24.0;
+
 
   @override
   void initState() {
@@ -53,57 +57,57 @@ class _UpdateServicePageState extends State<UpdateService> {
     }
   }
 
+  void _submitUpdate() {
+    if (nameController.text.isEmpty ||
+        detailsController.text.isEmpty ||
+        priceController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    final updatedService = {
+      'user': userController.text,
+      'name': nameController.text,
+      'details': detailsController.text,
+      'price': priceController.text,
+      'imageBytes': base64Encode(_imageBytes ?? Uint8List(0)),
+    };
+
+    Navigator.pop(context, updatedService);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Update Service')),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(paddingAll),
         child: Column(
           children: [
             ImagePickerWidget(
               imageBytes: _imageBytes,
               onTap: _pickImage,
             ),
-            SizedBox(height: 20),
+            SizedBox(height: spacingMedium),
             TextFieldWidget(controller: userController, labelText: 'User Name'),
-            SizedBox(height: 20),
+            SizedBox(height: spacingMedium),
             TextFieldWidget(controller: nameController, labelText: 'Service Name'),
-            SizedBox(height: 16.0),
+            SizedBox(height: spacingSmall),
             TextFieldWidget(
               controller: detailsController,
               labelText: 'Service Details',
               maxLines: 3,
             ),
-            SizedBox(height: 16.0),
+            SizedBox(height: spacingSmall),
             TextFieldWidget(
               controller: priceController,
               labelText: 'Price',
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: 24.0),
-            UpdateButtonWidget(
-              onPressed: () {
-                if (nameController.text.isEmpty ||
-                    detailsController.text.isEmpty ||
-                    priceController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please fill all fields')),
-                  );
-                  return;
-                }
-
-                final updatedService = {
-                  'user': userController.text,
-                  'name': nameController.text,
-                  'details': detailsController.text,
-                  'price': priceController.text,
-                  'imageBytes': base64Encode(_imageBytes ?? Uint8List(0)),
-                };
-
-                Navigator.pop(context, updatedService);
-              },
-            ),
+            SizedBox(height: spacingLarge),
+            UpdateButtonWidget(onPressed: _submitUpdate),
           ],
         ),
       ),

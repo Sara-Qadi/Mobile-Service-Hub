@@ -1,10 +1,11 @@
-// File: create_account_screen.dart
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import '../widgets_sara/custom_text_field.dart';
-
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   final String role;
@@ -26,19 +27,168 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool isButtonEnabled = false;
+  bool _isLoading = false;
 
   void _updateButtonState() {
     setState(() {
       isButtonEnabled = _firstNameController.text.isNotEmpty &&
           _emailController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
-          _locationController.text.isNotEmpty;
+          _confirmPasswordController.text.isNotEmpty;
     });
   }
 
-  void _createAccount() {
-    print('Account Created for ${_firstNameController.text}');
-    // TODO: Implement actual logic
+Future<void> _createAccount() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+  final confirmPassword = _confirmPasswordController.text.trim();
+  final firstName = _firstNameController.text.trim();
+  final lastName = _lastNameController.text.trim();
+
+  if (firstName.isEmpty || lastName.isEmpty) {
+    _showError('Please enter your first and last name');
+    return;
+  }
+
+  if (!RegExp(r"^[a-zA-Z]+$").hasMatch(firstName) ||
+      !RegExp(r"^[a-zA-Z]+$").hasMatch(lastName)) {
+    _showError('Names should only contain letters');
+    return;
+  }
+
+  if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email)) {
+    _showError('Invalid email format');
+    return;
+  }
+
+  if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$')
+      .hasMatch(password)) {
+    _showError(
+        'Password must be at least 6 characters and include:\n• Uppercase\n• Lowercase\n• Number\n• Special character');
+    return;
+  }
+
+  if (password != confirmPassword) {
+    _showError('Passwords do not match');
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    User? user = userCredential.user;
+
+    if (user != null) {
+      final String status = widget.role == 'Service Provider' ? 'pending' : 'approved';
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'location': {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        },
+        'role': widget.role,
+        'status': status,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (widget.role == 'Service Provider') {
+        // Notify admin about new provider registration
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'type': 'provider_signup',
+          'providerId': user.uid,
+          'providerName': '$firstName $lastName',
+          'timestamp': FieldValue.serverTimestamp(),
+          'status': 'unread',
+        });
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.role == 'Service Provider'
+              ? 'Account created. Waiting for admin approval.'
+              : 'Account created successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
+  } on FirebaseAuthException catch (e) {
+    _showError(e.message ?? 'An error occurred');
+  } catch (e) {
+    _showError('Something went wrong');
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}
+
+
+Future<void> _fetchLocation() async {
+  try {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _showError('Location permission denied');
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      _showError(
+          'Location permissions are permanently denied. Please enable them in settings.');
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude, position.longitude);
+
+    if (placemarks.isNotEmpty) {
+      final placemark = placemarks.first;
+      final address =
+          '${placemark.street}, ${placemark.locality}, ${placemark.country}';
+      setState(() {
+        _locationController.text = address;
+      });
+    }
+  } catch (e) {
+    _showError('Failed to get location: $e');
+  }
+}
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -76,32 +226,31 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               controller: _firstNameController,
               label: 'First Name',
               hint: 'Enter your first name',
-             onChanged: (_) => _updateButtonState(),
+              onChanged: (_) => _updateButtonState(),
             ),
             CustomTextField(
               controller: _lastNameController,
               label: 'Last Name',
               hint: 'Enter your last name',
-            onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
             ),
             CustomTextField(
               controller: _emailController,
               label: 'Email',
               hint: 'Enter your email',
-            onChanged: (_) => _updateButtonState(),
-
+              keyboardType: TextInputType.emailAddress,
+              onChanged: (_) => _updateButtonState(),
             ),
             CustomTextField(
               controller: _passwordController,
               label: 'Password',
               hint: 'Enter your password',
               obscureText: _obscurePassword,
-          onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
               suffixIcon: IconButton(
-                icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility),
+                icon: Icon(_obscurePassword
+                    ? Icons.visibility_off
+                    : Icons.visibility),
                 onPressed: () =>
                     setState(() => _obscurePassword = !_obscurePassword),
               ),
@@ -111,8 +260,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               label: 'Confirm Password',
               hint: 'Re-enter your password',
               obscureText: _obscureConfirmPassword,
-             onChanged: (_) => _updateButtonState(),
-
+              onChanged: (_) => _updateButtonState(),
               suffixIcon: IconButton(
                 icon: Icon(_obscureConfirmPassword
                     ? Icons.visibility_off
@@ -121,34 +269,59 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     _obscureConfirmPassword = !_obscureConfirmPassword),
               ),
             ),
-            CustomTextField(
-              controller: _locationController,
-              label: 'Location',
-              hint: 'Enter your location (Optional)',
-          onChanged: (_) => _updateButtonState(),
+        TextFormField(
+  controller: _locationController,
+  readOnly: true,
+  decoration: InputDecoration(
+    labelText: 'Location (Optional)',
+    hintText: 'Tap the icon to fetch location',
+    suffixIcon: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            setState(() {
+              _locationController.clear();
+            });
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.my_location),
+          onPressed: _fetchLocation,
+        ),
+      ],
+    ),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+  ),
+),
 
-            ),
+const SizedBox(height: 12),
+
             const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                elevation: 6,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor:
-                    isButtonEnabled ? Colors.green : Colors.grey.shade400,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              onPressed: isButtonEnabled ? _createAccount : null,
-              child: const Text(
-                'Create Account',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2),
-              ),
-            ),
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      elevation: 6,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: isButtonEnabled
+                          ? Colors.green
+                          : Colors.grey.shade400,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: isButtonEnabled ? _createAccount : null,
+                    child: const Text(
+                      'Create Account',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
             const SizedBox(height: 30),
             Center(
               child: RichText(
@@ -167,7 +340,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         ..onTap = () => Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) =>  LoginScreen()),
+                                  builder: (context) => LoginScreen()),
                             ),
                     ),
                   ],

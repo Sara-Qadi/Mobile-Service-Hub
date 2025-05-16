@@ -1,127 +1,140 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import '../widget/bottom_nav_bar.dart';
 
-class ClientTable extends StatefulWidget {
-  final String providerId;
-  final String providerName;
-
-  const ClientTable({
-    Key? key,
-    required this.providerId,
-    required this.providerName,
-  }) : super(key: key);
+class ProviderClientsTableView extends StatefulWidget {
+  const ProviderClientsTableView({Key? key}) : super(key: key);
 
   @override
-  State<ClientTable> createState() => _ClientTableState();
+  State<ProviderClientsTableView> createState() => _ProviderClientsTableViewState();
 }
 
-class _ClientTableState extends State<ClientTable> {
-  final CollectionReference _clientsCollection = FirebaseFirestore.instance.collection('clients');
+class _ProviderClientsTableViewState extends State<ProviderClientsTableView> {
   bool _isLoading = true;
   bool _hasError = false;
+  List<Map<String, dynamic>> _clientBookings = [];
   String _errorMessage = '';
-  List<Map<String, dynamic>> _clients = [];
+  String _providerName = '';
 
   @override
   void initState() {
     super.initState();
-    _createClientsCollectionIfNotExists();
-    _fetchClients();
+    _getCurrentProviderAndFetchClients();
   }
 
-  Future<void> _createClientsCollectionIfNotExists() async {
+  Future<void> _getCurrentProviderAndFetchClients() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
     try {
-      // Check if collection exists
-      final checkCollection = await _clientsCollection.limit(1).get();
-      
-      // If empty, add a sample client to initialize collection
-      if (checkCollection.docs.isEmpty) {
-        await _clientsCollection.add({
-          'name': 'Sample Client',
-          'email': 'sample@example.com',
-          'phone': '123-456-7890',
-          'providerId': widget.providerId,
-          'providerName': widget.providerName,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        throw Exception('User not logged in');
       }
+
+      print('Current Firebase user UID: ${user.uid}');
+
+      final providerDoc = await FirebaseFirestore.instance
+          .collection('providers')
+          .doc(user.uid)
+          .get();
+
+      if (!providerDoc.exists) {
+        throw Exception('Provider profile not found');
+      }
+
+      final providerData = providerDoc.data();
+      _providerName = providerData?['name'] ?? 'Unknown Provider';
+
+      print('Fetched provider name: $_providerName');
+
+      await _fetchClientBookingsFromFirebase();
     } catch (e) {
-      // Silently handle this error, as we'll show errors in _fetchClients
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = 'Error loading provider data: $e';
+      });
     }
   }
 
-  Future<void> _fetchClients() async {
+  Future<void> _fetchClientBookingsFromFirebase() async {
     try {
-      // First, fetch clients from the clients collection linked to this provider
-      final clientsQuery = _clientsCollection
-          .where('providerId', isEqualTo: widget.providerId)
-          .orderBy('timestamp', descending: true)
-          .get();
-
-      final clientsSnapshot = await clientsQuery.timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('Connection timed out');
-        },
-      );
-
-      List<Map<String, dynamic>> allClients = [];
-      
-      for (var doc in clientsSnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        // Add document ID to the data
-        data['id'] = doc.id;
-        data['source'] = 'clients';
-        allClients.add(data);
-      }
-
-      // Now fetch clients from bookingnow collection
-      final bookingQuery = FirebaseFirestore.instance
+      final querySnapshot = await FirebaseFirestore.instance
           .collection('bookingnow')
-          .where('provider', isEqualTo: widget.providerName)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 15), onTimeout: () {
+        throw TimeoutException('Connection timed out');
+      });
 
-      final bookingSnapshot = await bookingQuery.timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('Connection timed out while fetching bookings');
-        },
-      );
+      print('Looking for bookings for provider: $_providerName');
 
-      // Extract unique clients from bookings 
-      for (var doc in bookingSnapshot.docs) {
-        Map<String, dynamic> bookingData = doc.data();
-        String clientName = bookingData['name']?.toString() ?? '';
-        
-        // Check if this client is already in our clients collection
-        bool existsInClients = allClients.any((client) => 
-          client['name'] == clientName && client['source'] == 'clients'
-        );
-        
-        if (clientName.isNotEmpty && !existsInClients) {
-          Map<String, dynamic> clientData = {
-            'name': clientName,
-            'email': bookingData['email'] ?? '',
-            'phone': bookingData['phone'] ?? '',
-            'service': bookingData['service'] ?? '',
-            'date': bookingData['date'] ?? '',
-            'time': bookingData['time'] ?? '',
-            'location': bookingData['location'] ?? '',
-            'id': doc.id,
-            'source': 'bookings',
-            'providerId': widget.providerId,
-            'providerName': widget.providerName,
-          };
-          
-          allClients.add(clientData);
+      List<Map<String, dynamic>> bookings = [];
+
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        if (data['provider']?.toString() != _providerName) {
+          print('Skipped booking with provider: ${data['provider']}');
+          continue;
         }
+
+        print('Matched booking for provider: ${data['provider']}');
+
+        Map<String, dynamic> bookingMap = {
+          'bookingId': doc.id,
+          'name': data['name']?.toString() ?? '',
+          'service': data['service']?.toString() ?? '',
+          'date': data['date']?.toString() ?? '',
+          'time': data['time']?.toString() ?? '',
+          'location': data['location']?.toString() ?? '',
+          'serviceId': data['serviceId']?.toString() ?? '',
+          'timestamp': data['timestamp'],
+        };
+
+        try {
+          final clientQuery = await FirebaseFirestore.instance
+              .collection('users')
+              .where('firstName', isEqualTo: data['name']?.toString().split(' ')[0])
+              .limit(1)
+              .get();
+
+          if (clientQuery.docs.isNotEmpty) {
+            Map<String, dynamic> clientData = clientQuery.docs.first.data();
+            bookingMap['email'] = clientData['email']?.toString() ?? 'No email found';
+            bookingMap['clientId'] = clientQuery.docs.first.id;
+            bookingMap['notificationsEnabled'] = clientData['notificationsEnabled'] ?? false;
+          } else {
+            bookingMap['email'] = 'Client data not found';
+            bookingMap['clientId'] = '';
+            bookingMap['notificationsEnabled'] = false;
+          }
+        } catch (_) {
+          bookingMap['email'] = 'Error retrieving client data';
+          bookingMap['clientId'] = '';
+          bookingMap['notificationsEnabled'] = false;
+        }
+
+        bookings.add(bookingMap);
       }
+
+      // Sort by timestamp (newest first)
+      bookings.sort((a, b) {
+        var aTimestamp = a['timestamp'];
+        var bTimestamp = b['timestamp'];
+        if (aTimestamp == null) return 1;
+        if (bTimestamp == null) return -1;
+        return bTimestamp.compareTo(aTimestamp);
+      });
 
       if (mounted) {
         setState(() {
-          _clients = allClients;
+          _clientBookings = bookings;
           _isLoading = false;
           _hasError = false;
         });
@@ -133,7 +146,7 @@ class _ClientTableState extends State<ClientTable> {
       } else if (e is FirebaseException) {
         errorMsg = 'Firebase error: ${e.message ?? 'Unknown Firebase error'}';
       } else {
-        errorMsg = 'Error fetching clients: $e';
+        errorMsg = 'Error fetching client bookings: $e';
       }
 
       if (mounted) {
@@ -144,191 +157,48 @@ class _ClientTableState extends State<ClientTable> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMsg),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
+          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  Future<void> _addClient() async {
-    final result = await showDialog<Map<String, String>?>(
-      context: context,
-      builder: (context) => AddClientDialog(),
-    );
-    
-    if (result != null) {
-      setState(() => _isLoading = true);
-      
-      try {
-        await _clientsCollection.add({
-          'name': result['name'],
-          'email': result['email'],
-          'phone': result['phone'],
-          'providerId': widget.providerId,
-          'providerName': widget.providerName,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-        
-        _fetchClients(); // Refresh the list
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Client added successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-          _errorMessage = 'Failed to add client: $e';
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to add client: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteClient(String clientId, String clientName, String source) async {
-    // Show confirmation dialog
-    bool confirmDelete = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
+  Future<void> _deleteClientBooking(String bookingId, String clientName) async {
+    try {
+      bool confirmDelete = await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
           title: const Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete client $clientName?'),
+          content: Text('Are you sure you want to delete the booking for $clientName?'),
           actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
             ),
           ],
-        );
-      },
-    ) ?? false;
+        ),
+      ) ?? false;
 
-    if (!confirmDelete) return;
-    
-    setState(() => _isLoading = true);
-    
-    try {
-      if (source == 'clients') {
-        await _clientsCollection.doc(clientId).delete();
-      } else if (source == 'bookings') {
-        // When deleting from bookings, we don't delete the booking record
-        // Just update the list for user interface purposes
-        setState(() {
-          _clients.removeWhere((client) => client['id'] == clientId && client['source'] == 'bookings');
-        });
+      if (!confirmDelete) return;
+
+      setState(() => _isLoading = true);
+
+      await FirebaseFirestore.instance.collection('bookingnow').doc(bookingId).delete();
+
+      await _fetchClientBookingsFromFirebase();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Booking for $clientName has been deleted'), backgroundColor: Colors.green),
+        );
       }
-      
-      // Refresh the list
-      if (source == 'clients') {
-        _fetchClients();
-      } else {
+    } catch (e) {
+      if (mounted) {
         setState(() => _isLoading = false);
-      }
-      
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Client $clientName removed successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _hasError = true;
-        _errorMessage = 'Failed to delete client: $e';
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete client: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _saveToClients(Map<String, dynamic> bookingClient) async {
-    setState(() => _isLoading = true);
-    
-    try {
-      // Check if this client already exists in clients collection
-      final checkExisting = await _clientsCollection
-          .where('name', isEqualTo: bookingClient['name'])
-          .where('providerId', isEqualTo: widget.providerId)
-          .limit(1)
-          .get();
-      
-      if (checkExisting.docs.isEmpty) {
-        // Add as new client
-        await _clientsCollection.add({
-          'name': bookingClient['name'],
-          'email': bookingClient['email'] ?? '',
-          'phone': bookingClient['phone'] ?? '',
-          'service': bookingClient['service'] ?? '',
-          'lastBooking': bookingClient['date'] ?? '',
-          'providerId': widget.providerId,
-          'providerName': widget.providerName,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Client saved to your client list'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Client already exists in your client list'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-      
-      _fetchClients(); // Refresh the list
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _hasError = true;
-        _errorMessage = 'Failed to save client: $e';
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save client: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Failed to delete booking: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -340,503 +210,185 @@ class _ClientTableState extends State<ClientTable> {
       _hasError = false;
       _errorMessage = '';
     });
-    _fetchClients();
+    _fetchClientBookingsFromFirebase();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Your Clients',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+  Future<void> _sendNotification(String clientId, String clientName) async {
+    if (clientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot send notification: Client ID not available'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final TextEditingController messageController = TextEditingController();
+
+    bool? result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Send Notification to $clientName'),
+        content: TextField(
+          controller: messageController,
+          decoration: const InputDecoration(
+            labelText: 'Message',
+            hintText: 'Enter your notification message',
+            border: OutlineInputBorder(),
           ),
-        ),
-        backgroundColor: Colors.teal,
-        centerTitle: true,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (!_isLoading) {
-              Navigator.pop(context);
-            }
-          },
+          maxLines: 3,
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _isLoading ? null : _retryFetch,
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            child: const Text('Send'),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
-              ),
-            )
-          : _hasError
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 100,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error Loading Clients',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _retryFetch,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                        ),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _clients.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 80,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No Clients Found',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Add your first client to get started.',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _addClient,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add Client'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'All Clients for ${widget.providerName}',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              ElevatedButton.icon(
-                                onPressed: _addClient,
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add Client'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Expanded(
-                            child: Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return ListView(
-                                      children: [
-                                        SingleChildScrollView(
-                                          scrollDirection: Axis.horizontal,
-                                          child: DataTable(
-                                            columnSpacing: 16,
-                                            dataRowHeight: 60,
-                                            headingRowColor: MaterialStateColor.resolveWith(
-                                              (states) => Colors.teal.shade50,
-                                            ),
-                                            columns: const [
-                                              DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                                              DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-                                              DataColumn(label: Text('Phone', style: TextStyle(fontWeight: FontWeight.bold))),
-                                              DataColumn(label: Text('Service', style: TextStyle(fontWeight: FontWeight.bold))),
-                                              DataColumn(label: Text('Source', style: TextStyle(fontWeight: FontWeight.bold))),
-                                              DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            ],
-                                            rows: _clients.map((client) {
-                                              String source = client['source'] ?? '';
-                                              
-                                              return DataRow(
-                                                color: source == 'bookings' ? MaterialStateColor.resolveWith(
-                                                  (states) => Colors.amber.withOpacity(0.1),
-                                                ) : null,
-                                                cells: [
-                                                  DataCell(Text(client['name'] ?? 'Unknown')),
-                                                  DataCell(Text(client['email'] ?? 'Not provided')),
-                                                  DataCell(Text(client['phone'] ?? 'Not provided')),
-                                                  DataCell(Text(client['service'] ?? 'Not provided')),
-                                                  DataCell(
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                      decoration: BoxDecoration(
-                                                        color: source == 'clients' 
-                                                            ? Colors.green.withOpacity(0.2) 
-                                                            : Colors.orange.withOpacity(0.2),
-                                                        borderRadius: BorderRadius.circular(12),
-                                                      ),
-                                                      child: Text(
-                                                        source == 'clients' ? 'Client List' : 'Booking',
-                                                        style: TextStyle(
-                                                          color: source == 'clients' ? Colors.green[800] : Colors.orange[800],
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  DataCell(
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        if (source == 'clients')
-                                                          IconButton(
-                                                            icon: const Icon(Icons.edit, color: Colors.blue),
-                                                            onPressed: () async {
-                                                              final result = await showDialog<Map<String, String>?>(
-                                                                context: context,
-                                                                builder: (context) => EditClientDialog(
-                                                                  initialName: client['name'] ?? '',
-                                                                  initialEmail: client['email'] ?? '',
-                                                                  initialPhone: client['phone'] ?? '',
-                                                                ),
-                                                              );
-                                                              
-                                                              if (result != null) {
-                                                                setState(() => _isLoading = true);
-                                                                
-                                                                try {
-                                                                  await _clientsCollection.doc(client['id']).update({
-                                                                    'name': result['name'],
-                                                                    'email': result['email'],
-                                                                    'phone': result['phone'],
-                                                                  });
-                                                                  
-                                                                  _fetchClients(); // Refresh the list
-                                                                } catch (e) {
-                                                                  setState(() {
-                                                                    _isLoading = false;
-                                                                    _hasError = true;
-                                                                    _errorMessage = 'Failed to update client: $e';
-                                                                  });
-                                                                  
-                                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                                    SnackBar(
-                                                                      content: Text('Failed to update client: $e'),
-                                                                      backgroundColor: Colors.red,
-                                                                    ),
-                                                                  );
-                                                                }
-                                                              }
-                                                            },
-                                                            tooltip: 'Edit client',
-                                                          ),
-                                                        IconButton(
-                                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                                          onPressed: () => _deleteClient(client['id'], client['name'] ?? 'Unknown', source),
-                                                          tooltip: source == 'clients' ? 'Delete client' : 'Remove from view',
-                                                        ),
-                                                        if (source == 'bookings')
-                                                          IconButton(
-                                                            icon: const Icon(Icons.person_add, color: Colors.green),
-                                                            onPressed: () => _saveToClients(client),
-                                                            tooltip: 'Save to client list',
-                                                          ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              );
-                                            }).toList(),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildSummaryCard(),
-                        ],
-                      ),
-                    ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
+
+    if (result == true && messageController.text.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance.collection('notifications').add({
+          'userId': clientId,
+          'message': messageController.text,
+          'sender': _providerName,
+          'read': false,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Notification sent to $clientName'), backgroundColor: Colors.green),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send notification: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  Widget _buildSummaryCard() {
-    // Calculate summary statistics
-    int totalClients = _clients.length;
-    int clientListCount = _clients.where((c) => c['source'] == 'clients').length;
-    int bookingClientsCount = _clients.where((c) => c['source'] == 'bookings').length;
-    
-    // Get unique services
-    Set<String> uniqueServices = _clients
-        .map((client) => client['service']?.toString() ?? '')
-        .where((service) => service.isNotEmpty)
-        .toSet();
-    
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.teal.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Client Summary',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('Total Clients: $totalClients'),
-            Text('Clients in List: $clientListCount'),
-            Text('Clients from Bookings: $bookingClientsCount'),
-            Text('Unique Services: ${uniqueServices.length}'),
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isLoading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please wait, data is loading...'), duration: Duration(seconds: 2)),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('My Clients', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.teal,
+          centerTitle: true,
+          elevation: 0,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => !_isLoading ? Navigator.pop(context) : null),
+          actions: [
+            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _isLoading ? null : _retryFetch, tooltip: 'Refresh'),
           ],
         ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.teal)))
+            : _hasError
+                ? Center(child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 100),
+                      const SizedBox(height: 16),
+                      Text('Error Loading Client Data', style: Theme.of(context).textTheme.headlineSmall),
+                      const SizedBox(height: 8),
+                      Text(_errorMessage, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+                      const SizedBox(height: 16),
+                      ElevatedButton(onPressed: _retryFetch, style: ElevatedButton.styleFrom(backgroundColor: Colors.teal), child: const Text('Retry')),
+                    ],
+                  ))
+                : _clientBookings.isEmpty
+                    ? Center(child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.calendar_today, color: Colors.grey, size: 80),
+                          const SizedBox(height: 16),
+                          Text('No Client Bookings Found', style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 8),
+                          Text('You have no client bookings at the moment.', style: Theme.of(context).textTheme.bodyMedium),
+                        ],
+                      ))
+                    : Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: Text('Your Client Bookings', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                            ),
+                            Expanded(
+                              child: Card(
+                                elevation: 4,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: ListView(
+                                    children: [
+                                      SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: DataTable(
+                                          columnSpacing: 16,
+                                          dataRowHeight: 65,
+                                          headingRowColor: MaterialStateColor.resolveWith((states) => Colors.teal.shade50),
+                                          columns: const [
+                                            DataColumn(label: Text('Client Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                                            DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
+                                            DataColumn(label: Text('Service', style: TextStyle(fontWeight: FontWeight.bold))),
+                                            DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
+                                            DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
+                                            DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
+                                            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                                          ],
+                                          rows: _clientBookings.map((booking) {
+                                            return DataRow(cells: [
+                                              DataCell(Text(booking['name'] ?? '')),
+                                              DataCell(Text(booking['email'] ?? '')),
+                                              DataCell(Text(booking['service'] ?? '')),
+                                              DataCell(Text(booking['date'] ?? '')),
+                                              DataCell(Text(booking['time'] ?? '')),
+                                              DataCell(Text(booking['location'] ?? '')),
+                                              DataCell(Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                                    onPressed: () => _deleteClientBooking(booking['bookingId'], booking['name']),
+                                                    tooltip: 'Delete booking',
+                                                  ),
+                                                  IconButton(
+                                                    icon: const Icon(Icons.notifications, color: Colors.amber),
+                                                    onPressed: booking['notificationsEnabled']
+                                                        ? () => _sendNotification(booking['clientId'], booking['name'])
+                                                        : null,
+                                                    tooltip: booking['notificationsEnabled']
+                                                        ? 'Send notification'
+                                                        : 'Notifications disabled',
+                                                  ),
+                                                ],
+                                              )),
+                                            ]);
+                                          }).toList(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+        bottomNavigationBar: const BottomNavBar(currentIndex: 1),
       ),
-    );
-  }
-}
-
-// Dialog for adding a new client
-class AddClientDialog extends StatefulWidget {
-  @override
-  State<AddClientDialog> createState() => _AddClientDialogState();
-}
-
-class _AddClientDialogState extends State<AddClientDialog> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add New Client'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Client Name',
-                  icon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter client name';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email (optional)',
-                  icon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone (optional)',
-                  icon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'name': _nameController.text,
-                'email': _emailController.text,
-                'phone': _phoneController.text,
-              });
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-          ),
-          child: const Text('Add Client'),
-        ),
-      ],
-    );
-  }
-}
-
-// Dialog for editing an existing client
-class EditClientDialog extends StatefulWidget {
-  final String initialName;
-  final String initialEmail;
-  final String initialPhone;
-
-  const EditClientDialog({
-    Key? key,
-    required this.initialName,
-    required this.initialEmail,
-    required this.initialPhone,
-  }) : super(key: key);
-
-  @override
-  State<EditClientDialog> createState() => _EditClientDialogState();
-}
-
-class _EditClientDialogState extends State<EditClientDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _emailController;
-  late TextEditingController _phoneController;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.initialName);
-    _emailController = TextEditingController(text: widget.initialEmail);
-    _phoneController = TextEditingController(text: widget.initialPhone);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Edit Client'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Client Name',
-                  icon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter client name';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email (optional)',
-                  icon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone (optional)',
-                  icon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              Navigator.pop(context, {
-                'name': _nameController.text,
-                'email': _emailController.text,
-                'phone': _phoneController.text,
-              });
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-          ),
-          child: const Text('Save Changes'),
-        ),
-      ],
     );
   }
 }

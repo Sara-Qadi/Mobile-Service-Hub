@@ -94,11 +94,11 @@ class BookingConfirmation extends StatelessWidget {
                 _deleteCancelledBooking(context);
                 
                 Navigator.of(context).pop(); 
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BookingForm()),
-                  (route) => false,
-                );
+                // Navigator.pushAndRemoveUntil(
+                //   context,
+                //   MaterialPageRoute(builder: (context) => const BookingForm()),
+                //   (route) => false,
+                // );
               },
               child: const Text(
                 'Confirm Cancellation',

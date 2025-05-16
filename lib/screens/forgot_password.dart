@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/varify.dart';
 
@@ -9,21 +10,8 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _contactController = TextEditingController();
-  String _selectedMethod = 'email';
+  String _selectedMethod = 'email'; 
   bool isButtonEnabled = false;
-
-  void _sendResetLink() {
-    print('Code sent to ${_contactController.text} via $_selectedMethod');
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => VerifyCodeScreen(
-          contact: _contactController.text,
-          method: _selectedMethod,
-        ),
-      ),
-    );
-  }
 
   void _updateButtonState() {
     setState(() {
@@ -33,96 +21,88 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _toggleMethod(int index) {
     setState(() {
-      _selectedMethod = index == 0 ? 'email' : 'sms';
+      _selectedMethod = index == 0 ? 'email' : 'sms'; 
       _contactController.clear();
       isButtonEnabled = false;
     });
   }
 
-  Widget _buildToggleButtons() {
-    return Center(
-      child: ToggleButtons(
-        isSelected: [_selectedMethod == 'email', _selectedMethod == 'sms'],
-        onPressed: _toggleMethod,
-        borderRadius: BorderRadius.circular(8),
-        selectedColor: Colors.white,
-        fillColor: Colors.teal,
-        color: Colors.black,
-        constraints: const BoxConstraints(minHeight: 45, minWidth: 120),
-        children: const [
-          Text("Email"),
-          Text("SMS"),
-        ],
-      ),
-    );
-  }
+  Future<void> _sendResetLink() async {
+   final contact = _contactController.text.trim();
 
-  Widget _buildTextField() {
-    return TextField(
-      key: ValueKey(_selectedMethod),
-      controller: _contactController,
-      onChanged: (_) => _updateButtonState(),
-      keyboardType: _selectedMethod == 'email'
-          ? TextInputType.emailAddress
-          : TextInputType.phone,
-      decoration: InputDecoration(
-        labelText: _selectedMethod == 'email' ? "Email" : "Phone Number",
-        hintText: _selectedMethod == 'email'
-            ? "Enter your email"
-            : "Enter your phone number",
-        border: const OutlineInputBorder(),
-        hintStyle: const TextStyle(color: Colors.blueGrey),
-      ),
+if (_selectedMethod == 'email') {
+  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  if (!emailRegex.hasMatch(contact)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please enter a valid email address.")),
     );
+    return;
   }
-
-  Widget _buildSendButton() {
-    return ElevatedButton(
-      style: ButtonStyle(
-        elevation: MaterialStateProperty.all(6),
-        padding: MaterialStateProperty.all(
-          const EdgeInsets.symmetric(vertical: 16),
-        ),
-        shape: MaterialStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        ),
-        backgroundColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.pressed)) {
-            return Colors.blueAccent;
-          } else if (states.contains(MaterialState.hovered)) {
-            return Colors.teal;
-          } else if (states.contains(MaterialState.disabled)) {
-            return Colors.grey.shade400;
-          }
-          return Colors.teal;
-        }),
-      ),
-      onPressed: isButtonEnabled ? _sendResetLink : null,
-      child: const Text(
-        'Send Code',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          letterSpacing: 1.1,
-        ),
-      ),
+} else {
+  final phoneRegex = RegExp(r'^\+?[0-9]{10,13}$'); 
+  if (!phoneRegex.hasMatch(contact)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please enter a valid phone number.")),
     );
+    return;
   }
+}
 
-  Widget _buildBackToLoginButton() {
-    return TextButton(
-      onPressed: () {
+
+    if (_selectedMethod == 'email') {
+ 
+      try {
+        await FirebaseAuth.instance.sendPasswordResetEmail(email: contact);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Password reset email sent.")),
+        );
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
+          MaterialPageRoute(builder: (_) => LoginScreen()),
         );
-      },
-      child: const Text(
-        'Back to Login',
-        style: TextStyle(fontSize: 14),
-      ),
-    );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${e.toString()}")),
+        );
+      }
+    } else {
+  
+      try {
+        await FirebaseAuth.instance.verifyPhoneNumber(
+          phoneNumber: contact,
+          timeout: const Duration(seconds: 60),
+          verificationCompleted: (PhoneAuthCredential credential) {},
+          verificationFailed: (FirebaseAuthException e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Verification failed: ${e.message}")),
+            );
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VerifyCodeScreen(
+                  contact: contact,
+                  method: 'sms',
+                  verificationId: verificationId,
+                ),
+              ),
+            );
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {},
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${e.toString()}")),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _contactController.dispose();
+    super.dispose();
   }
 
   @override
@@ -160,13 +140,58 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildToggleButtons(),
+            Center(
+              child: ToggleButtons(
+                isSelected: [_selectedMethod == 'email', _selectedMethod == 'sms'],
+                onPressed: _toggleMethod,
+                borderRadius: BorderRadius.circular(8),
+                selectedColor: Colors.white,
+                fillColor: Colors.teal,
+                color: Colors.black,
+                constraints: const BoxConstraints(minHeight: 45, minWidth: 120),
+                children: const [Text("Email"), Text("SMS")],
+              ),
+            ),
             const SizedBox(height: 20),
-            _buildTextField(),
+            TextField(
+              key: ValueKey(_selectedMethod),
+              controller: _contactController,
+              onChanged: (_) => _updateButtonState(),
+              keyboardType: _selectedMethod == 'email'
+                  ? TextInputType.emailAddress
+                  : TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: _selectedMethod == 'email' ? "Email" : "Phone Number",
+                hintText: _selectedMethod == 'email'
+                    ? "Enter your email"
+                    : "Enter your phone number",
+                border: const OutlineInputBorder(),
+                hintStyle: const TextStyle(color: Colors.blueGrey),
+              ),
+            ),
             const SizedBox(height: 30),
-            _buildSendButton(),
+            ElevatedButton(
+              onPressed: isButtonEnabled ? _sendResetLink : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              ),
+              child: const Text(
+                'Send Code',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
             const SizedBox(height: 20),
-            _buildBackToLoginButton(),
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                );
+              },
+              child: const Text('Back to Login'),
+            ),
           ],
         ),
       ),

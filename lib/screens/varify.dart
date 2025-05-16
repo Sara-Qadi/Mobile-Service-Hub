@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
 
 class VerifyCodeScreen extends StatefulWidget {
   final String contact;
   final String method;
+  final String verificationId;
 
   const VerifyCodeScreen({
     required this.contact,
     required this.method,
+    required this.verificationId,
     super.key,
   });
 
@@ -16,28 +19,40 @@ class VerifyCodeScreen extends StatefulWidget {
 }
 
 class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
-  final List<TextEditingController> _controllers =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+final List<TextEditingController> _controllers =
+    List.generate(6, (_) => TextEditingController());
+final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
 
   bool get _isCodeComplete =>
       _controllers.every((controller) => controller.text.isNotEmpty);
 
-  void _verifyCode() {
+  void _verifyCode() async {
     final enteredCode = _controllers.map((c) => c.text).join();
-    print('Verifying code $enteredCode sent to ${widget.contact}');
 
-    // todo
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ResetPasswordScreen(contact: widget.contact),
-      ),
-    );
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: widget.verificationId,
+        smsCode: enteredCode,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(contact: widget.contact),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Verification failed: ${e.toString()}')),
+      );
+    }
   }
 
   void _onDigitEntered(int index, String value) {
-    if (value.length == 1 && index < 3) {
+    if (value.length == 1 && index < 5) {
       _focusNodes[index + 1].requestFocus();
     } else if (value.isEmpty && index > 0) {
       _focusNodes[index - 1].requestFocus();
@@ -105,18 +120,8 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
             const SizedBox(height: 40),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(4, _buildDigitField),
-            ),
-            const SizedBox(height: 30),
-            TextButton(
-              onPressed: () {
-                // todo
-                print('Resending code to ${widget.contact}');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Verification code resent')),
-                );
-              },
-              child: const Text('Resend Code'),
+     children: List.generate(6, _buildDigitField),
+
             ),
             const SizedBox(height: 30),
             ElevatedButton(

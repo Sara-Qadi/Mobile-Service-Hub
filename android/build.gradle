@@ -1,6 +1,8 @@
 import org.gradle.api.GradleException
+
 buildscript {
-    ext.kotlin_version = '1.7.10'
+   ext.kotlin_version = '1.9.23'
+
     repositories {
         google()
         mavenCentral()
@@ -26,4 +28,5 @@ subprojects {
 }
 task clean(type: Delete) {
     delete rootProject.buildDir
-}
+} 
+
