@@ -59,7 +59,7 @@ class BottomNavBar extends StatelessWidget {
             case 2:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const BookingForm()),
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
               );
               break;
             case 3:
