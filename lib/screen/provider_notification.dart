@@ -75,7 +75,7 @@ void _onAccept(NotificationModel notification) async {
   await _updateBookingStatus(notification.bookingId!, 'accepted');
   await markAsRead(notification.id);
 
-  // Add to bookingnow table for provider
+  // Add to bookingnow table
   try {
     final client = notification.clientData!;
     await FirebaseFirestore.instance.collection('bookingnow').add({
@@ -89,31 +89,12 @@ void _onAccept(NotificationModel notification) async {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // Add notification for the client about booking confirmation
-    await FirebaseFirestore.instance.collection('notifications').add({
-      'clientId': client['clientId'],   // Make sure this exists in clientData
-      'providerId': currentUser?.uid ?? '',
-      'type': 'booking',  // or NotificationType.booking if you save enums as strings
-      'bookingId': notification.bookingId,
-      'bookingData': {
-        'name': client['name'] ?? '',
-        'service': client['service'] ?? '',
-        'provider': currentUser?.uid ?? '',
-        'location': client['location'] ?? '',
-        'date': client['date'] ?? '',
-        'time': client['time'] ?? '',
-        'serviceId': client['serviceId'] ?? '',
-      },
-      'isRead': false,
-      'time': FieldValue.serverTimestamp(),
-    });
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Booking request accepted and added to schedule')),
     );
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to add to booking or notification: $e')),
+      SnackBar(content: Text('Failed to add to booking table: $e')),
     );
   }
 }

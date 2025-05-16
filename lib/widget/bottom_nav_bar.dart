@@ -9,6 +9,7 @@ import 'package:mobile_service_hub/screen/admin_notification.dart';
 import 'package:mobile_service_hub/screen/customer_notification.dart';
 import 'package:mobile_service_hub/screen/provider_notification.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
+import 'package:mobile_service_hub/views/services_display_page.dart';
 import '/views/services_page.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -78,12 +79,24 @@ class _BottomNavBarState extends State<BottomNavBar> {
       onTap: (index) async {
         if (index != widget.currentIndex) {
           switch (index) {
-            case 0:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => ServicesPage()),
-              );
-              break;
+         case 0:
+  if (_userRole == 'Service Provider') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => ServicesPage()),
+    );
+  } else {
+   final snapshot = await FirebaseFirestore.instance.collection('services').get();
+final List<Map<String, dynamic>> servicesList = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (context) => ServicesDisplayPage(services: servicesList)),
+);
+
+  }
+  break;
+
             case 1:
               if (_userRole == 'Service Provider') {
                 Navigator.pushReplacement(
@@ -98,7 +111,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
               }
               break;
             case 2 :
-        case 2:
   final currentUser = FirebaseAuth.instance.currentUser;
 
   if (currentUser != null) {

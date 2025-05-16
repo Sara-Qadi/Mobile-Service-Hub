@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mobile_service_hub/views/services_display_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_service_hub/screens/create_account.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
@@ -128,14 +129,29 @@ Future<void> _login() async {
       await prefs.remove('password');
     }
 
-    // Save uid and role to prefs
     await prefs.setString('uid', user.uid);
     await prefs.setString('role', role);
+    List<Map<String, dynamic>> services = [];
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => ServicesPage()), // Your main page
-    );
+if (role == 'Admin' || role == 'Customer') {
+  final snapshot = await FirebaseFirestore.instance.collection('services').get();
+  services = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+}
+
+if (role == 'Admin' || role == 'Customer') {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => ServicesDisplayPage(services: services)),
+  );
+} else if (role == 'Service Provider') {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => ServicesPage()),
+  );
+} else {
+  _showError('Unrecognized role. Please contact support.');
+}
+
   } on FirebaseAuthException catch (e) {
     _showError(e.message ?? 'Login failed');
   } catch (e) {
