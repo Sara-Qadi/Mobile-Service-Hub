@@ -54,12 +54,13 @@ class BottomNavBar extends StatelessWidget {
       builder: (context) => BookingTimesTableView(bookingData: {},),
     ),
   );
+  
   break;
 
             case 2:
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                MaterialPageRoute(builder: (context) => const BookingForm()),
               );
               break;
             case 3:
