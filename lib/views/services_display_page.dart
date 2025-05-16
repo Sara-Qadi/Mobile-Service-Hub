@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'package:mobile_service_hub/widget/bottom_nav_bar.dart';
 import 'view_service_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -238,6 +239,7 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
           ),
         ],
       ),
+               bottomNavigationBar: const BottomNavBar(currentIndex: 0),
     );
   }
 }

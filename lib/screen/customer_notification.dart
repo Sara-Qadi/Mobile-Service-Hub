@@ -29,7 +29,7 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
     FirebaseFirestore.instance
         .collection('notifications')
         .where('clientId', isEqualTo: currentUser!.uid)
-              .where('type', isEqualTo: 'booking')
+       
         .orderBy('time', descending: true)
         .snapshots()
         .listen((snapshot) {
