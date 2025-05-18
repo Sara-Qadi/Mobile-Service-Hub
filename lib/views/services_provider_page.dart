@@ -1,8 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_service_hub/screen/ProviderClientsTableView.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';  // Add this import
 import 'package:mobile_service_hub/theme/app_colors.dart';
-import 'view_service_page.dart';
 
 class ServicesProviderPage extends StatefulWidget {
   final List<Map<String, dynamic>> services;
@@ -17,11 +17,17 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
   TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredServices = [];
 
+  // Map to cache provider userId to their profile image bytes
+  final Map<String, Uint8List?> _profileImagesCache = {};
+
   @override
   void initState() {
     super.initState();
     filteredServices = widget.services;
     _searchController.addListener(_filterServices);
+
+    // Preload profile images for all services' providers
+    _preloadProfileImages();
   }
 
   void _filterServices() {
@@ -34,6 +40,36 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
     });
   }
 
+  Future<void> _preloadProfileImages() async {
+    // Get all unique provider identifiers from services
+    final providerIds = widget.services
+        .map((service) => service['userId'] as String?)
+        .whereType<String>()
+        .toSet();
+
+    for (final userId in providerIds) {
+      // Fetch profile image once and cache it
+      final imageBytes = await _fetchUserProfileImage(userId);
+      setState(() {
+        _profileImagesCache[userId] = imageBytes;
+      });
+    }
+  }
+
+  Future<Uint8List?> _fetchUserProfileImage(String userId) async {
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final data = doc.data();
+      if (data != null && data['profileImage'] != null && data['profileImage'].isNotEmpty) {
+        return base64Decode(data['profileImage']);
+      }
+    } catch (e) {
+      print("Error fetching profile image for $userId: $e");
+    }
+    return null; // Return null if no image or error
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -43,7 +79,8 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Provider Services"), backgroundColor: AppColors.primary),
+      appBar:
+          AppBar(title: Text("Provider Services"), backgroundColor: AppColors.primary),
       body: Column(
         children: [
           Padding(
@@ -74,13 +111,13 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
               itemCount: filteredServices.length,
               itemBuilder: (_, index) {
                 final service = filteredServices[index];
-                final imageBytes = base64Decode(service['imageBytes'] ?? '');
+
+                final userId = service['userId'] as String?;
+                final providerName = service['user'] ?? 'Unknown';
+
+                final imageBytes = userId != null ? _profileImagesCache[userId] : null;
 
                 return GestureDetector(
-                  // onTap: () {
-                  //   Navigator.push(context,
-                  //     MaterialPageRoute(builder: (_) => ProviderDetailsPage(providerData: {},)));
-                  // },
                   child: Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -89,13 +126,19 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                            child: Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity),
+                            child: imageBytes != null
+                                ? Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity)
+                                : Image.asset(
+                                    'assets/images/person1.jpg',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text(
-                            service['user'],
+                            providerName,
                             style: TextStyle(fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),

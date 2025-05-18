@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
 import 'package:mobile_service_hub/views/services_page.dart';
@@ -19,6 +23,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
   String _firstName = '';
   String _lastName = '';
   bool _isLoading = true;
+  Uint8List? _imageBytes;
 
   @override
   void initState() {
@@ -30,18 +35,27 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc =
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         final data = doc.data();
         if (data != null) {
           setState(() {
             _firstName = data['firstName'] ?? '';
             _lastName = data['lastName'] ?? '';
+            _notificationsEnabled = data['notificationsEnabled'] ?? false;
+            final imageData = data['profileImage'];
+            if (imageData != null && imageData.isNotEmpty) {
+              _imageBytes = base64Decode(imageData);
+            }
             _isLoading = false;
           });
         }
       }
     } catch (e) {
       print("Error fetching user profile: $e");
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -99,6 +113,56 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: source);
+
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'profileImage': base64String});
+        setState(() {
+          _imageBytes = bytes;
+        });
+      }
+    }
+  }
+
+  void _showImageSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -186,7 +250,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) =>  LoginScreen()),
+          MaterialPageRoute(builder: (_) => LoginScreen()),
           (route) => false,
         );
       }
@@ -227,9 +291,12 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 70,
-                    backgroundImage: AssetImage('assets/images/person1.jpg'),
+                    backgroundImage: _imageBytes != null
+                        ? MemoryImage(_imageBytes!)
+                        : const AssetImage('assets/images/person1.jpg')
+                            as ImageProvider,
                   ),
                   Container(
                     decoration: const BoxDecoration(
@@ -238,9 +305,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.edit, color: Colors.white),
-                      onPressed: () {
-                        // TODO: Change profile picture
-                      },
+                      onPressed: _showImageSourcePicker,
                     ),
                   ),
                 ],
@@ -286,7 +351,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) =>  ServicesPage()),
+                  MaterialPageRoute(builder: (_) => ServicesPage()),
                 );
               },
             ),
@@ -297,7 +362,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) =>  ResetPasswordScreen(contact: '')),
+                  MaterialPageRoute(builder: (_) => ResetPasswordScreen(contact: '')),
                 );
               },
             ),
@@ -322,7 +387,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                   FirebaseAuth.instance.signOut();
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) =>  LoginScreen()),
+                    MaterialPageRoute(builder: (_) => LoginScreen()),
                     (route) => false,
                   );
                 },

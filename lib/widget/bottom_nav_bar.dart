@@ -9,6 +9,7 @@ import 'package:mobile_service_hub/screen/admin_notification.dart';
 import 'package:mobile_service_hub/screen/customer_notification.dart';
 import 'package:mobile_service_hub/screen/provider_notification.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
+import 'package:mobile_service_hub/screens/customer_profile.dart';
 import 'package:mobile_service_hub/views/services_display_page.dart';
 import '/views/services_page.dart';
 
@@ -141,13 +142,20 @@ Navigator.pushReplacement(
   break;
 
 
-              break;
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ServiceProviderProfile()),
-              );
-              break;
+       case 3:
+  if (_userRole == 'Service Provider') {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ServiceProviderProfile()),
+    );
+  } else {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CustomerProfilePage()),
+    );
+  }
+  break;
+
           }
         }
       },

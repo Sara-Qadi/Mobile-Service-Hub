@@ -202,7 +202,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
           'id': service['id'],
           'name': service['name'],
           'user': service['user'],
-          'userId': service['userId'], // ✅ This is now passed correctly
+          'userId': service['userId'], 
         },
       ),
     ),
