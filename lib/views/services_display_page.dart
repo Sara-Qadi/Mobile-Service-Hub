@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'package:mobile_service_hub/views/services_provider_page.dart';
 import 'package:mobile_service_hub/widget/bottom_nav_bar.dart';
 import 'view_service_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -82,7 +83,7 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
           children: [
             Text(
               "Display Services",
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16,),
             ),
           ],
         ),
@@ -237,7 +238,27 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
               },
             ),
           ),
+          
+       
         ],
+      ),
+       floatingActionButton: FloatingActionButton(
+        heroTag: 'provider',
+        backgroundColor: Colors.teal,
+        child: Icon(Icons.person),
+        onPressed: () async {
+          final snapshot =
+              await FirebaseFirestore.instance.collection('services').get();
+          final List<Map<String, dynamic>> servicesList = snapshot.docs
+              .map((doc) => doc.data() as Map<String, dynamic>)
+              .toList();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ServicesProviderPage(services: servicesList),
+            ),
+          );
+        },
       ),
                bottomNavigationBar: const BottomNavBar(currentIndex: 0),
     );
