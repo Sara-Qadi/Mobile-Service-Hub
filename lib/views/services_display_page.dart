@@ -1,10 +1,13 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import 'package:mobile_service_hub/views/services_provider_page.dart';
 import 'package:mobile_service_hub/widget/bottom_nav_bar.dart';
-import 'view_service_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+
+import '../widgets/category_dropdown_widget.dart';
+import '../widgets/search_field_widget.dart';
+import '../widgets/service_card_widget.dart';
+import 'package:mobile_service_hub/repository/display_service_repository.dart';
 
 class ServicesDisplayPage extends StatefulWidget {
   final List<Map<String, dynamic>> services;
@@ -16,7 +19,9 @@ class ServicesDisplayPage extends StatefulWidget {
 }
 
 class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  final ServiceRepository _serviceRepo = ServiceRepository();
+
   List<Map<String, dynamic>> filteredServices = [];
   String selectedCategory = 'All';
 
@@ -32,17 +37,6 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
     super.dispose();
   }
 
-  Future<void> _storeSearchQuery(String query) async {
-    if (query.trim().isEmpty) return;
-
-    final searchCollection =
-        FirebaseFirestore.instance.collection('search-display');
-    await searchCollection.add({
-      'query': query,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-  }
-
   List<String> getCategories() {
     final categories = widget.services
         .map((s) => s['name']?.toString() ?? '')
@@ -54,15 +48,13 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
   }
 
   void _filterServices() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text;
     setState(() {
-      filteredServices = widget.services.where((service) {
-        final name = service['name']?.toString().toLowerCase() ?? '';
-        final matchQuery = name.contains(query);
-        final matchCategory =
-            selectedCategory == 'All' || service['name'] == selectedCategory;
-        return matchQuery && matchCategory;
-      }).toList();
+      filteredServices = _serviceRepo.filterServices(
+        services: widget.services,
+        query: query,
+        selectedCategory: selectedCategory,
+      );
     });
   }
 
@@ -74,77 +66,56 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
     _filterServices();
   }
 
+  void _onSearchSubmitted(String query) {
+    _serviceRepo.storeSearchQuery(query);
+  }
+
+  Future<void> _navigateToProviderPage() async {
+    try {
+      final servicesList = await _serviceRepo.fetchAllServices();
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ServicesProviderPage(services: servicesList),
+        ),
+      );
+    } catch (e) {
+      print('Error fetching services: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ أثناء تحميل الخدمات')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              "Display Services",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16,),
-            ),
-          ],
+        title: const Text(
+          "Display Services",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         backgroundColor: Colors.teal,
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedCategory,
-                  dropdownColor: Colors.white,
-                  style: TextStyle(
-                      color: Colors.teal, fontWeight: FontWeight.w600),
-                  items: getCategories().map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(
-                        category,
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: _onCategoryChanged,
-                  icon: Icon(Icons.filter_list,
-                      color: Color.fromARGB(255, 11, 11, 11)),
-                ),
-              ),
-            ),
+          CategoryDropdownWidget(
+            selectedCategory: selectedCategory,
+            categories: getCategories(),
+            onChanged: _onCategoryChanged,
           ),
         ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.all(12),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (value) {
-                _filterServices(); 
-              },
-              onSubmitted: (value) {
-                _storeSearchQuery(value);
-              },
-              decoration: InputDecoration(
-                hintText: "Search services...",
-                prefixIcon: Icon(Icons.search, color: Colors.teal),
-                filled: true,
-                fillColor: AppColors.border,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+          SearchFieldWidget(
+            controller: _searchController,
+            onChanged: (_) => _filterServices(),
+            onSubmitted: _onSearchSubmitted,
           ),
           Expanded(
             child: GridView.builder(
-              padding: EdgeInsets.all(12),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
@@ -153,114 +124,19 @@ class _ServicesDisplayPageState extends State<ServicesDisplayPage> {
               itemCount: filteredServices.length,
               itemBuilder: (_, index) {
                 final service = filteredServices[index];
-                final imageBytes = base64Decode(service['imageBytes'] ?? '');
-
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => ViewServicePage(service: service)),
-                    );
-                  },
-                  child: Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                       
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(12)),
-                                child: Image.memory(
-                                  imageBytes,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.teal,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(12),
-                                      topRight: Radius.circular(12),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    service['user'] ?? 'Unknown',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black45,
-                                          offset: Offset(0, 1),
-                                          blurRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                    
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            service['name'],
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                return ServiceCardWidget(service: service);
               },
             ),
           ),
-          
-       
         ],
       ),
-       floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton(
         heroTag: 'provider',
         backgroundColor: Colors.teal,
-        child: Icon(Icons.person),
-        onPressed: () async {
-          final snapshot =
-              await FirebaseFirestore.instance.collection('services').get();
-          final List<Map<String, dynamic>> servicesList = snapshot.docs
-              .map((doc) => doc.data() as Map<String, dynamic>)
-              .toList();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ServicesProviderPage(services: servicesList),
-            ),
-          );
-        },
+        child: const Icon(Icons.person),
+        onPressed: _navigateToProviderPage,
       ),
-               bottomNavigationBar: const BottomNavBar(currentIndex: 0),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 0),
     );
   }
 }

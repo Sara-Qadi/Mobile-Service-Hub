@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 
-class SearchBarWidget extends StatelessWidget {
+class SearchFieldWidget extends StatelessWidget {
   final TextEditingController controller;
+  final Function(String) onChanged;
+  final Function(String) onSubmitted;
 
-  const SearchBarWidget({required this.controller, super.key});
+  const SearchFieldWidget({
+    required this.controller,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       child: TextField(
         controller: controller,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
         decoration: InputDecoration(
           hintText: "Search services...",
           prefixIcon: Icon(Icons.search, color: Colors.teal),
           filled: true,
-          fillColor: Colors.white,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          fillColor: AppColors.border,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
           ),
         ),
       ),
