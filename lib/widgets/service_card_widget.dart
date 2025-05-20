@@ -1,27 +1,15 @@
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:mobile_service_hub/theme/app_colors.dart';
-import '../views/view_service_page.dart';
-
+import '../../../views/view_service_page.dart';
 
 class ServiceCardWidget extends StatelessWidget {
   final Map<String, dynamic> service;
-  final Function(Map<String, dynamic>) onUpdateService;
-  final Function(Map<String, dynamic>) onDeleteService;
 
-  ServiceCardWidget({
-    required this.service,
-    required this.onUpdateService,
-    required this.onDeleteService,
-  });
+  const ServiceCardWidget({required this.service});
 
   @override
   Widget build(BuildContext context) {
-    Uint8List? imageBytes;
-    if (service['imageBytes'] != null && service['imageBytes'] != "") {
-      imageBytes = base64Decode(service['imageBytes']);
-    }
+    final imageBytes = base64Decode(service['imageBytes'] ?? '');
 
     return GestureDetector(
       onTap: () {
@@ -31,72 +19,67 @@ class ServiceCardWidget extends StatelessWidget {
         );
       },
       child: Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                child: imageBytes != null
-                    ? Image.memory(imageBytes, fit: BoxFit.cover)
-                    : Container(
-                        color: AppColors.dark,
-                        child: Icon(Icons.image, size: 50, color:AppColors.primary),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(12)),
+                    child: Image.memory(
+                      imageBytes,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.teal,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
                       ),
+                      child: Text(
+                        service['user'] ?? 'Unknown',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black45,
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                children: [
-                  Text(
-                    service['name'],
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: Colors.teal[800],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      GestureDetector(
-                        onTap: () => onUpdateService(service),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.edit, color: Colors.teal),
-                            SizedBox(height: 4),
-                            Text(
-                              'edit',
-                              style: TextStyle(
-                                  color: Colors.grey[500], fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () => onDeleteService(service),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.delete, color: Colors.red[400]),
-                            SizedBox(height: 4),
-                            Text(
-                              'delete',
-                              style: TextStyle(
-                                  color: Colors.grey[500], fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                service['name'],
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],
