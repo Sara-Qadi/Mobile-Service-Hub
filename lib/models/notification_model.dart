@@ -7,7 +7,8 @@ enum NotificationType {
   promotion, 
   info, 
   clientRequest,
-  approval,   // Added approval here
+  approval,
+  booking_rejected,  
 }
 
 class NotificationModel {
@@ -25,6 +26,7 @@ class NotificationModel {
   final String? providerId;
   final String? bookingId;
   final Timestamp? createdAt;
+  final String? notificationFor;
 
   NotificationModel({
     required this.id,
@@ -41,6 +43,7 @@ class NotificationModel {
     this.providerId,
     this.bookingId,
     this.createdAt,
+    this.notificationFor,
   });
 
   NotificationModel copyWith({
@@ -58,6 +61,7 @@ class NotificationModel {
     String? providerId,
     String? bookingId,
     Timestamp? createdAt,
+    String? notificationFor,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -74,6 +78,7 @@ class NotificationModel {
       providerId: providerId ?? this.providerId,
       bookingId: bookingId ?? this.bookingId,
       createdAt: createdAt ?? this.createdAt,
+      notificationFor: notificationFor ?? this.notificationFor,
     );
   }
 
@@ -89,7 +94,7 @@ class NotificationModel {
         notificationType = NotificationType.booking;
         break;
       case 'approval':
-        notificationType = NotificationType.approval;  // Added here
+        notificationType = NotificationType.approval;
         break;
       case 'reminder':
         notificationType = NotificationType.reminder;
@@ -102,6 +107,9 @@ class NotificationModel {
         break;
       case 'clientRequest':
         notificationType = NotificationType.clientRequest;
+        break;
+      case 'booking_rejected':
+        notificationType = NotificationType.booking_rejected;
         break;
     }
 
@@ -170,6 +178,7 @@ class NotificationModel {
       providerId: data['providerId'],
       bookingId: data['bookingId'],
       createdAt: data['createdAt'],
+      notificationFor: data['notificationFor'],
     );
   }
 
@@ -183,7 +192,7 @@ class NotificationModel {
         typeString = 'booking';
         break;
       case NotificationType.approval:
-        typeString = 'approval';  // Added here
+        typeString = 'approval';
         break;
       case NotificationType.reminder:
         typeString = 'reminder';
@@ -196,6 +205,9 @@ class NotificationModel {
         break;
       case NotificationType.clientRequest:
         typeString = 'clientRequest';
+        break;
+      case NotificationType.booking_rejected:
+        typeString = 'booking_rejected';
         break;
     }
 
@@ -212,6 +224,7 @@ class NotificationModel {
       'providerId': providerId,
       'bookingId': bookingId,
       'createdAt': createdAt ?? Timestamp.now(),
+      'notificationFor': notificationFor,
     };
   }
 }

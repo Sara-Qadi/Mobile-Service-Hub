@@ -2,12 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_service_hub/screen/Bookingconfirmation.dart';
+import 'package:mobile_service_hub/screen/ProviderClientsTableView.dart';
 
 import '../models/notification_model.dart';
+import '../services/notification_service.dart';
 import '../widget/bottom_nav_bar.dart';
 import '../widget/notification_widgets/notification_item.dart';
 import '../widget/notification_widgets/client_details_card.dart';
+
 class ProviderNotificationsScreen extends StatefulWidget {
   const ProviderNotificationsScreen({Key? key}) : super(key: key);
 
@@ -16,100 +18,91 @@ class ProviderNotificationsScreen extends StatefulWidget {
 }
 
 class _ProviderNotificationsScreenState extends State<ProviderNotificationsScreen> {
-List<NotificationModel> notifications = [];
-  final currentUser = FirebaseAuth.instance.currentUser;
+  List<NotificationModel> notifications = [];
+  final NotificationService _notificationService = NotificationService();
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    if (currentUser != null) {
-      _listenToNotifications();
-    }
+    _listenToNotifications();
   }
 
   void _listenToNotifications() {
-    FirebaseFirestore.instance
-        .collection('notifications')
-        .where('providerId', isEqualTo: currentUser!.uid)
-.orderBy('time', descending: true)
+    _notificationService.getProviderNotifications().listen((updatedNotifications) {
+      if (mounted) {
+        setState(() {
+          notifications = updatedNotifications;
+          isLoading = false;
+        });
+      }
+    });
+  }
 
-        .snapshots()
-        .listen((snapshot) {
-      setState(() {
-        notifications = snapshot.docs
-            .map((doc) => NotificationModel.fromFirestore(doc))
-            .toList();
+  void _onAccept(NotificationModel notification) async {
+    if (notification.bookingId == null || notification.clientData == null) return;
+
+    await _notificationService.updateBookingStatus(notification.bookingId!, 'accepted');
+    await _notificationService.markAsRead(notification.id);
+
+    try {
+      final client = notification.clientData!;
+      await FirebaseFirestore.instance.collection('bookingnow').add({
+        'name': client['name'] ?? '',
+        'service': client['service'] ?? '',
+        'provider': _notificationService.currentUserId ?? '',
+        'location': client['location'] ?? '',
+        'date': client['date'] ?? '',
+        'time': client['time'] ?? '',
+        'serviceId': client['serviceId'] ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
       });
-    });
-  }
 
-  Future<void> markAsRead(String id) async {
-    await FirebaseFirestore.instance.collection('notifications').doc(id).update({'isRead': true});
-  }
+      final String clientId = notification.clientId ?? '';
+      if (clientId.isNotEmpty) {
+        await _notificationService.sendNotificationToClient(
+          clientId: clientId,
+          message: 'Your booking request has been accepted',
+          bookingData: Map<String, dynamic>.from(client),
+          type: 'booking'
+        );
+      }
 
-  Future<void> markAllAsRead() async {
-    final batch = FirebaseFirestore.instance.batch();
-    for (var notification in notifications) {
-      batch.update(FirebaseFirestore.instance.collection('notifications').doc(notification.id), {'isRead': true});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking request accepted and added to schedule')),
+      );
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const EnhancedProviderClientsTableView()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add to booking table: $e')),
+      );
     }
-    await batch.commit();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('All notifications marked as read')),
-    );
   }
 
-  Future<void> deleteNotification(String id) async {
-    await FirebaseFirestore.instance.collection('notifications').doc(id).delete();
+  void _onReject(NotificationModel notification) async {
+    if (notification.bookingId == null || notification.clientData == null) return;
+    
+    await _notificationService.updateBookingStatus(notification.bookingId!, 'rejected');
+    await _notificationService.markAsRead(notification.id);
+    
+    final String clientId = notification.clientId ?? '';
+    if (clientId.isNotEmpty) {
+      await _notificationService.sendNotificationToClient(
+        clientId: clientId,
+        message: 'Your booking request has been rejected',
+        bookingData: Map<String, dynamic>.from(notification.clientData!),
+        type: 'booking_rejected'
+      );
+    }
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Notification deleted')),
+      const SnackBar(content: Text('Booking request rejected')),
     );
   }
-
-  Future<void> _updateBookingStatus(String bookingId, String status) async {
-    await FirebaseFirestore.instance.collection('bookings').doc(bookingId).update({'status': status});
-  }
-
-void _onAccept(NotificationModel notification) async {
-  if (notification.bookingId == null || notification.clientData == null) return;
-
-  await _updateBookingStatus(notification.bookingId!, 'accepted');
-  await markAsRead(notification.id);
-
-  // Add to bookingnow table
-  try {
-    final client = notification.clientData!;
-    await FirebaseFirestore.instance.collection('bookingnow').add({
-      'name': client['name'] ?? '',
-      'service': client['service'] ?? '',
-      'provider': currentUser?.uid ?? '',
-      'location': client['location'] ?? '',
-      'date': client['date'] ?? '',
-      'time': client['time'] ?? '',
-      'serviceId': client['serviceId'] ?? '',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Booking request accepted and added to schedule')),
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to add to booking table: $e')),
-    );
-  }
-}
-
-
-
-void _onReject(NotificationModel notification) async {
-  if (notification.bookingId == null) return;
-  await _updateBookingStatus(notification.bookingId!, 'rejected');
-  await markAsRead(notification.id);
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Booking request rejected')),
-  );
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -121,7 +114,12 @@ void _onReject(NotificationModel notification) async {
         ),
         actions: [
           TextButton(
-            onPressed: markAllAsRead,
+            onPressed: () async {
+              await _notificationService.markAllAsRead(notifications);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('All notifications marked as read')),
+              );
+            },
             child: const Text(
               'Mark all as read',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
@@ -129,26 +127,32 @@ void _onReject(NotificationModel notification) async {
           ),
         ],
       ),
-      body: notifications.isEmpty
-          ? _buildEmptyState(context)
-          : ListView.builder(
-              itemCount: notifications.length,
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
-                return NotificationItemWidget(
-                  notification: notification,
-                  onTap: (id) async {
-                    await markAsRead(id);
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : notifications.isEmpty
+              ? _buildEmptyState(context)
+              : ListView.builder(
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    return NotificationItemWidget(
+                      notification: notification,
+                      onTap: (id) async {
+                        await _notificationService.markAsRead(id);
 
-                    if (notification.type == NotificationType.clientRequest && notification.clientData != null) {
-                      _showClientRequestDetailsPopup(context, notification);
-                    }
-                    // You can add more logic here for other notification types
+                        if (notification.type == NotificationType.clientRequest && notification.clientData != null) {
+                          _showClientRequestDetailsPopup(context, notification);
+                        }
+                      },
+                      onDelete: (id) async {
+                        await _notificationService.deleteNotification(id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Notification deleted')),
+                        );
+                      },
+                    );
                   },
-                  onDelete: deleteNotification,
-                );
-              },
-            ),
+                ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
@@ -256,5 +260,4 @@ void _onReject(NotificationModel notification) async {
       },
     );
   }
-
 }
