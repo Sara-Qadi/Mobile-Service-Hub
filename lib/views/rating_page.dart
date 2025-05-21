@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
-
+import '../repository/RatingRepository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/comment_field_widget.dart';
 import '../widgets/name_field_widget.dart';
 import '../widgets/rating_stars_widget.dart';
 import '../widgets/submit_button_widget.dart';
+
 
 class RatingPage extends StatefulWidget {
   final Map<String, dynamic> service;
@@ -22,109 +21,62 @@ class RatingPage extends StatefulWidget {
 }
 
 class _RatingPageState extends State<RatingPage> {
+  final RatingRepository _ratingRepository = RatingRepository(); // ✅ استخدم الريبو
   double _rating = 0;
-  TextEditingController _nameController = TextEditingController();
-  TextEditingController _commentController = TextEditingController();
-    final double screenHeightFactor = 0.6;
-  final double containerPadding = 20;
-  final double cardElevation = 4;
-  final double cardBorderRadius = 16;
-  final double cardBorderWidth = 2;
-  final double innerPadding = 20;
-  final double titleFontSize = 22;
-  final double appBarFontSize = 20;
-  final double widgetSpacingLarge = 20;
-  final double widgetSpacingSmall = 16;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
 
-
-  @override
-  void initState() {
-    super.initState();
-    Firebase.initializeApp(); 
-  }
-
-  Future<void> _submitRating() async {
-    final name = _nameController.text.trim();
-    final comment = _commentController.text.trim();
-
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter your name')),
-      );
-      return;
-    }
-
-    if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a rating')),
-      );
-      return;
-    }
-
-    final newRating = {
-      'name': name,
-      'comment': comment,
-      'rating': _rating,
-      'date': DateTime.now().toIso8601String(),
-      'serviceId': widget.service['id'], // لربط التقييم بالخدمة
-    };
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('ratings')
-          .add(newRating);
-
-      widget.onRatingSubmitted(newRating);
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting rating: $e')),
-      );
-    }
+  void _handleSubmitRating() {
+    _ratingRepository.submitRating(
+      context: context,
+      service: widget.service,
+      name: _nameController.text.trim(),
+      comment: _commentController.text.trim(),
+      rating: _rating,
+      onRatingSubmitted: widget.onRatingSubmitted,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
+    final serviceId = widget.service['id'];
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: AppColors.border,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: Text('Rate - ${widget.service['name']}',
-            style: TextStyle(fontSize:containerPadding , fontWeight: FontWeight.bold)),
+        title: Text(
+          'Rate - ${widget.service['name']}',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Center(
         child: SingleChildScrollView(
           child: Container(
-            constraints: BoxConstraints(
-              minHeight: screenHeight * screenHeightFactor,
-            ),
-            padding: EdgeInsets.all(containerPadding),
+            constraints: BoxConstraints(minHeight: screenHeight * 0.6),
+            padding: EdgeInsets.all(20),
             child: Card(
-              elevation: cardElevation,
+              elevation: 4,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(cardBorderRadius),
-                side: BorderSide(
-                  color: AppColors.primary,
-                  width: cardBorderWidth,
-                ),
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: AppColors.primary, width: 2),
               ),
               child: Padding(
-                padding: EdgeInsets.all(innerPadding),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       'Rate this service',
                       style: TextStyle(
-                        fontSize: titleFontSize,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
                       ),
                     ),
-                    SizedBox(height: widgetSpacingLarge),
+                    SizedBox(height: 20),
                     RatingStarsWidget(
                       rating: _rating,
                       onRatingChanged: (newRating) {
@@ -133,32 +85,29 @@ class _RatingPageState extends State<RatingPage> {
                         });
                       },
                     ),
-                    SizedBox(height: widgetSpacingLarge),
+                    SizedBox(height: 20),
                     NameFieldWidget(controller: _nameController),
-                    SizedBox(height: widgetSpacingSmall),
+                    SizedBox(height: 16),
                     CommentFieldWidget(controller: _commentController),
-                    SizedBox(height: widgetSpacingLarge),
-                    SubmitButtonWidget(
-                      onPressed: _submitRating,
-                    ),
-                    SizedBox(height: widgetSpacingLarge),
-                    // عرض التقييمات الحالية
+                    SizedBox(height: 20),
+                    SubmitButtonWidget(onPressed: _handleSubmitRating),
+                    SizedBox(height: 20),
                     StreamBuilder(
-                      stream: FirebaseFirestore.instance
-                          .collection('ratings')
-                          .where('serviceId', isEqualTo: widget.service['id'])
-                          .snapshots(),
+                      stream: _ratingRepository.getServiceRatings(serviceId), // ✅ من الريبو
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
-                          return Center(child: CircularProgressIndicator());
+                          return CircularProgressIndicator();
                         }
-                        var ratings = snapshot.data!.docs;
+
+                        final ratings = snapshot.data!.docs;
+
                         return ListView.builder(
                           shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
                           itemCount: ratings.length,
                           itemBuilder: (context, index) {
-                            var rating = ratings[index];
-                           
+                            final rating = ratings[index].data();
+                            
                           },
                         );
                       },

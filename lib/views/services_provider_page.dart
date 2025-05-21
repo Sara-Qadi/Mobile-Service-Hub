@@ -1,8 +1,7 @@
-import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:mobile_service_hub/screen/ProviderClientsTableView.dart';
+import 'package:mobile_service_hub/repository/user_repository.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
-import 'view_service_page.dart';
 
 class ServicesProviderPage extends StatefulWidget {
   final List<Map<String, dynamic>> services;
@@ -14,23 +13,33 @@ class ServicesProviderPage extends StatefulWidget {
 }
 
 class _ServicesProviderPageState extends State<ServicesProviderPage> {
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  final UserRepository _userRepo = UserRepository();
+
   List<Map<String, dynamic>> filteredServices = [];
+  Map<String, Uint8List?> _profileImagesCache = {};
 
   @override
   void initState() {
     super.initState();
     filteredServices = widget.services;
-    _searchController.addListener(_filterServices);
+    _searchController.addListener(_handleSearch);
+    _loadImages(); // Calls future from repo
   }
 
-  void _filterServices() {
-    final query = _searchController.text.toLowerCase();
+  void _handleSearch() {
     setState(() {
-      filteredServices = widget.services.where((service) {
-        final user = service['user']?.toString().toLowerCase() ?? '';
-        return user.contains(query);
-      }).toList();
+      filteredServices = _userRepo.filterServicesByProvider(
+          widget.services, _searchController.text);
+    });
+  }
+
+  void _loadImages() async {
+    final images =
+        await _userRepo.preloadProfileImagesFromServices(widget.services);
+    if (!mounted) return;
+    setState(() {
+      _profileImagesCache = images;
     });
   }
 
@@ -43,7 +52,10 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Provider Services"), backgroundColor: AppColors.primary),
+      appBar: AppBar(
+        title: Text("Provider Services"),
+        backgroundColor: AppColors.primary,
+      ),
       body: Column(
         children: [
           Padding(
@@ -74,28 +86,37 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
               itemCount: filteredServices.length,
               itemBuilder: (_, index) {
                 final service = filteredServices[index];
-                final imageBytes = base64Decode(service['imageBytes'] ?? '');
+                final userId = service['userId'] as String?;
+                final providerName = service['user'] ?? 'Unknown';
+                final imageBytes =
+                    userId != null ? _profileImagesCache[userId] : null;
 
                 return GestureDetector(
-                  // onTap: () {
-                  //   Navigator.push(context,
-                  //     MaterialPageRoute(builder: (_) => ProviderDetailsPage(providerData: {},)));
-                  // },
                   child: Card(
                     elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Column(
                       children: [
                         Expanded(
                           child: ClipRRect(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                            child: Image.memory(imageBytes, fit: BoxFit.cover, width: double.infinity),
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(12)),
+                            child: imageBytes != null
+                                ? Image.memory(imageBytes,
+                                    fit: BoxFit.cover, width: double.infinity)
+                                : Image.asset(
+                                    'assets/images/person1.jpg',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
                           ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Text(
-                            service['user'],
+                            providerName,
                             style: TextStyle(fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),

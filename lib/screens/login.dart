@@ -10,6 +10,7 @@ import 'package:mobile_service_hub/screens/role.dart';
 import 'package:mobile_service_hub/views/services_page.dart';
 import 'package:mobile_service_hub/widgets_sara/login_text_field.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -37,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final prefs = await SharedPreferences.getInstance();
     final savedEmail = prefs.getString('email');
     final savedPassword = prefs.getString('password');
-
     if (savedEmail != null && savedPassword != null) {
       setState(() {
         _emailController.text = savedEmail;
@@ -58,7 +58,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void _updateButtonState() {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-
     setState(() {
       _emailErrorVisible = !_isValidEmail(email);
       _passwordErrorVisible = !_isValidPassword(password);
@@ -66,43 +65,64 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  bool _isValidEmail(String email) {
-    return email.contains(RegExp(r'^[^@]+@[^@]+\.[^@]+'));
+  bool _isValidEmail(String email) =>
+      email.contains(RegExp(r'^[^@]+@[^@]+\.[^@]+'));
+
+  bool _isValidPassword(String password) => password.length >= 6;
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    setState(() {
+      _emailErrorVisible = email.isEmpty || !_isValidEmail(email);
+      _passwordErrorVisible = password.isEmpty || !_isValidPassword(password);
+    });
+
+    if (_emailErrorVisible || _passwordErrorVisible) {
+      setState(() => _isLoading = false);
+      _showError('Please fix the errors before logging in.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+      await _handleUserNavigation(userCredential.user);
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          _showError('No account found for that email.');
+          break;
+        case 'wrong-password':
+          _showError('Incorrect password. Please try again.');
+          break;
+        case 'invalid-email':
+          _showError('The email address is not valid.');
+          break;
+        case 'user-disabled':
+          _showError('This account has been disabled.');
+          break;
+        default:
+          _showError('Login failed. ${e.message}');
+      }
+      setState(() => _isLoading = false);
+    } catch (e) {
+      _showError('Something went wrong. Please try again.');
+      setState(() => _isLoading = false);
+    }
   }
 
-  bool _isValidPassword(String password) {
-    return password.length >= 6;
-  }
-Future<void> _login() async {
-  final email = _emailController.text.trim();
-  final password = _passwordController.text.trim();
-
-  setState(() {
-    _emailErrorVisible = email.isEmpty || !_isValidEmail(email);
-    _passwordErrorVisible = password.isEmpty || !_isValidPassword(password);
-  });
-
-  if (_emailErrorVisible || _passwordErrorVisible) {
-    _showError('Please fix the errors before logging in.');
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  try {
-    UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(email: email, password: password);
-    User? user = userCredential.user;
-
+  Future<void> _handleUserNavigation(User? user) async {
     if (user == null) {
       _showError('Login failed. Please try again.');
       return;
     }
 
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
 
     if (!userDoc.exists) {
       _showError('User data not found.');
@@ -119,49 +139,61 @@ Future<void> _login() async {
       return;
     }
 
-    // Save credentials and user info
     final prefs = await SharedPreferences.getInstance();
     if (_rememberMe) {
-      await prefs.setString('email', email);
-      await prefs.setString('password', password);
+      await prefs.setString('email', _emailController.text);
+      await prefs.setString('password', _passwordController.text);
     } else {
       await prefs.remove('email');
       await prefs.remove('password');
     }
-
     await prefs.setString('uid', user.uid);
     await prefs.setString('role', role);
+
     List<Map<String, dynamic>> services = [];
+    if (role == 'Admin' || role == 'Customer') {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('services').get();
+      services = snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+    }
 
-if (role == 'Admin' || role == 'Customer') {
-  final snapshot = await FirebaseFirestore.instance.collection('services').get();
-  services = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-}
-
-if (role == 'Admin' || role == 'Customer') {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => ServicesDisplayPage(services: services)),
-  );
-} else if (role == 'Service Provider') {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute(builder: (_) => ServicesPage()),
-  );
-} else {
-  _showError('Unrecognized role. Please contact support.');
-}
-
-  } on FirebaseAuthException catch (e) {
-    _showError(e.message ?? 'Login failed');
-  } catch (e) {
-    _showError('Something went wrong. Please try again.');
-  } finally {
-    setState(() => _isLoading = false);
+    if (role == 'Admin' || role == 'Customer') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ServicesDisplayPage(services: services)),
+      );
+    } else if (role == 'Service Provider') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ServicesPage()),
+      );
+    } else {
+      _showError('Unrecognized role. Please contact support.');
+    }
   }
-}
 
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
 
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      await _handleUserNavigation(userCredential.user);
+    } catch (e) {
+      _showError('Google sign-in failed.');
+    }
+  }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -180,10 +212,8 @@ if (role == 'Admin' || role == 'Customer') {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 125),
-            Center(
-              child: Image.asset('assets/images/logo.png', height: 120),
-            ),
+            const SizedBox(height: 145),
+            Center(child: Image.asset('assets/images/logo.png', height: 120)),
             const SizedBox(height: 60),
             LoginTextField(
               controller: _emailController,
@@ -232,9 +262,7 @@ if (role == 'Admin' || role == 'Customer') {
           children: [
             Checkbox(
               value: _rememberMe,
-              onChanged: (value) {
-                setState(() => _rememberMe = value!);
-              },
+              onChanged: (value) => setState(() => _rememberMe = value!),
               visualDensity: VisualDensity.compact,
             ),
             const Text('Remember me', style: TextStyle(fontSize: 14)),
@@ -259,14 +287,14 @@ if (role == 'Admin' || role == 'Customer') {
         elevation: 6,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        backgroundColor: _isLoginEnabled
-            ? AppColors.primary
-            : AppColors.disabled,
+        backgroundColor:
+            _isLoginEnabled ? AppColors.primary : AppColors.disabled,
       ),
       onPressed: _isLoginEnabled ? _login : null,
       child: const Text(
         'Login',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+        style:
+            TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
       ),
     );
   }
@@ -285,30 +313,16 @@ if (role == 'Admin' || role == 'Customer') {
   }
 
   Widget _buildSocialLoginButtons() {
-    return Column(
-      children: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.g_mobiledata),
-          label: const Text("Sign in with Google"),
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-          ),
-        ),
-        const SizedBox(height: 10),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.facebook),
-          label: const Text("Sign in with Facebook"),
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue.shade800,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-          ),
-        ),
-      ],
+    return ElevatedButton.icon(
+      icon: const Icon(Icons.g_mobiledata),
+      
+      label: const Text("Sign in with Gmail"),
+      onPressed: _signInWithGoogle,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Color.fromARGB(255, 224, 94, 85),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 50),
+      ),
     );
   }
 
