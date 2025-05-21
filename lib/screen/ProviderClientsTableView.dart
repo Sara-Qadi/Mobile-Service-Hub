@@ -1,393 +1,685 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async';
+import 'package:intl/intl.dart';
+import 'package:data_table_2/data_table_2.dart';
 import '../widget/bottom_nav_bar.dart';
 
-class ProviderClientsTableView extends StatefulWidget {
-  const ProviderClientsTableView({Key? key}) : super(key: key);
+class EnhancedProviderClientsTableView extends StatefulWidget {
+  const EnhancedProviderClientsTableView({Key? key}) : super(key: key);
 
   @override
-  State<ProviderClientsTableView> createState() => _ProviderClientsTableViewState();
+  State<EnhancedProviderClientsTableView> createState() => _EnhancedProviderClientsTableViewState();
 }
 
-class _ProviderClientsTableViewState extends State<ProviderClientsTableView> {
-  bool _isLoading = true;
-  bool _hasError = false;
-  List<Map<String, dynamic>> _clientBookings = [];
-  String _errorMessage = '';
-  String _providerName = '';
+class _EnhancedProviderClientsTableViewState extends State<EnhancedProviderClientsTableView> {
+  final currentUser = FirebaseAuth.instance.currentUser;
+  List<Map<String, dynamic>> clients = [];
+  bool isLoading = true;
+  String? errorMessage;
+  bool isTableView = true;
+  String searchQuery = '';
+  
+  String sortColumn = 'timestamp';
+  bool sortAscending = false;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentProviderAndFetchClients();
+    _loadClients();
   }
 
-  Future<void> _getCurrentProviderAndFetchClients() async {
+  Future<void> _loadClients() async {
+    if (currentUser == null) return;
+
     setState(() {
-      _isLoading = true;
-      _hasError = false;
+      isLoading = true;
+      errorMessage = null;
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
-        throw Exception('User not logged in');
-      }
-
-      print('Current Firebase user UID: ${user.uid}');
-
-      final providerDoc = await FirebaseFirestore.instance
-          .collection('providers')
-          .doc(user.uid)
+      final bookingsSnapshot = await FirebaseFirestore.instance
+          .collection('bookingnow')
+          .where('provider', isEqualTo: currentUser!.uid)
           .get();
 
-      if (!providerDoc.exists) {
-        throw Exception('Provider profile not found');
+      final List<Map<String, dynamic>> loadedBookings = [];
+      for (var doc in bookingsSnapshot.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        loadedBookings.add(data);
       }
 
-      final providerData = providerDoc.data();
-      _providerName = providerData?['name'] ?? 'Unknown Provider';
+      final List<Map<String, dynamic>> loadedClients = [];
+      for (var booking in loadedBookings) {
+        if (booking['clientId'] != null) {
+          try {
+            final clientDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(booking['clientId'])
+                .get();
+                
+            if (clientDoc.exists) {
+              final clientData = clientDoc.data() ?? {};
+              booking['email'] = clientData['email'] ?? 'N/A';
+              booking['phone'] = clientData['phone'] ?? 'N/A';
+              booking['profileImage'] = clientData['profileImage'];
+            }
+            
+          } catch (e) {
+            print('Error fetching client details: $e');
+          }
+        }
+        
+        loadedClients.add(booking);
+      }
 
-      print('Fetched provider name: $_providerName');
+      _sortClients(loadedClients);
 
-      await _fetchClientBookingsFromFirebase();
+      setState(() {
+        clients = loadedClients;
+        isLoading = false;
+      });
     } catch (e) {
       setState(() {
-        _isLoading = false;
-        _hasError = true;
-        _errorMessage = 'Error loading provider data: $e';
+        errorMessage = "Failed to load clients: $e";
+        isLoading = false;
       });
     }
   }
 
-  Future<void> _fetchClientBookingsFromFirebase() async {
-    try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('bookingnow')
-          .get()
-          .timeout(const Duration(seconds: 15), onTimeout: () {
-        throw TimeoutException('Connection timed out');
-      });
-
-      print('Looking for bookings for provider: $_providerName');
-
-      List<Map<String, dynamic>> bookings = [];
-
-      for (var doc in querySnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
-        if (data['provider']?.toString() != _providerName) {
-          print('Skipped booking with provider: ${data['provider']}');
-          continue;
-        }
-
-        print('Matched booking for provider: ${data['provider']}');
-
-        Map<String, dynamic> bookingMap = {
-          'bookingId': doc.id,
-          'name': data['name']?.toString() ?? '',
-          'service': data['service']?.toString() ?? '',
-          'date': data['date']?.toString() ?? '',
-          'time': data['time']?.toString() ?? '',
-          'location': data['location']?.toString() ?? '',
-          'serviceId': data['serviceId']?.toString() ?? '',
-          'timestamp': data['timestamp'],
-        };
-
-        try {
-          final clientQuery = await FirebaseFirestore.instance
-              .collection('users')
-              .where('firstName', isEqualTo: data['name']?.toString().split(' ')[0])
-              .limit(1)
-              .get();
-
-          if (clientQuery.docs.isNotEmpty) {
-            Map<String, dynamic> clientData = clientQuery.docs.first.data();
-            bookingMap['email'] = clientData['email']?.toString() ?? 'No email found';
-            bookingMap['clientId'] = clientQuery.docs.first.id;
-            bookingMap['notificationsEnabled'] = clientData['notificationsEnabled'] ?? false;
-          } else {
-            bookingMap['email'] = 'Client data not found';
-            bookingMap['clientId'] = '';
-            bookingMap['notificationsEnabled'] = false;
-          }
-        } catch (_) {
-          bookingMap['email'] = 'Error retrieving client data';
-          bookingMap['clientId'] = '';
-          bookingMap['notificationsEnabled'] = false;
-        }
-
-        bookings.add(bookingMap);
-      }
-
-      // Sort by timestamp (newest first)
-      bookings.sort((a, b) {
-        var aTimestamp = a['timestamp'];
-        var bTimestamp = b['timestamp'];
-        if (aTimestamp == null) return 1;
-        if (bTimestamp == null) return -1;
-        return bTimestamp.compareTo(aTimestamp);
-      });
-
-      if (mounted) {
-        setState(() {
-          _clientBookings = bookings;
-          _isLoading = false;
-          _hasError = false;
-        });
-      }
-    } catch (e) {
-      String errorMsg = 'Unknown error occurred';
-      if (e is TimeoutException) {
-        errorMsg = 'Connection timed out. Please check your internet connection.';
-      } else if (e is FirebaseException) {
-        errorMsg = 'Firebase error: ${e.message ?? 'Unknown Firebase error'}';
+  void _sortClients(List<Map<String, dynamic>> clientsList) {
+    clientsList.sort((a, b) {
+      if (sortColumn == 'name') {
+        final aName = a['name'] ?? '';
+        final bName = b['name'] ?? '';
+        return sortAscending ? aName.compareTo(bName) : bName.compareTo(aName);
+      } else if (sortColumn == 'service') {
+        final aService = a['service'] ?? '';
+        final bService = b['service'] ?? '';
+        return sortAscending ? aService.compareTo(bService) : bService.compareTo(aService);
+      } else if (sortColumn == 'date') {
+        final aDate = a['date'] ?? '';
+        final bDate = b['date'] ?? '';
+        return sortAscending ? aDate.compareTo(bDate) : bDate.compareTo(aDate);
       } else {
-        errorMsg = 'Error fetching client bookings: $e';
+        final aTimestamp = a['timestamp'] as Timestamp?;
+        final bTimestamp = b['timestamp'] as Timestamp?;
+        if (aTimestamp == null || bTimestamp == null) return 0;
+        return sortAscending ? aTimestamp.compareTo(bTimestamp) : bTimestamp.compareTo(aTimestamp);
       }
+    });
+  }
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-          _errorMessage = errorMsg;
-        });
+  List<Map<String, dynamic>> _getFilteredClients() {
+    if (searchQuery.isEmpty) return clients;
+    
+    return clients.where((client) {
+      final name = (client['name'] ?? '').toLowerCase();
+      final service = (client['service'] ?? '').toLowerCase();
+      final location = (client['location'] ?? '').toLowerCase();
+      final date = (client['date'] ?? '').toLowerCase();
+      final query = searchQuery.toLowerCase();
+      
+      return name.contains(query) || 
+             service.contains(query) || 
+             location.contains(query) || 
+             date.contains(query);
+    }).toList();
+  }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
-        );
+  String _formatDate(dynamic date) {
+    if (date == null) return 'N/A';
+    
+    if (date is Timestamp) {
+      final dateTime = date.toDate();
+      return DateFormat('yyyy-MM-dd HH:mm').format(dateTime);
+    } 
+    
+    return date.toString();
+  }
+
+  Future<void> _completeBooking(String bookingId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('bookingnow')
+          .doc(bookingId)
+          .update({'status': 'completed'});
+          
+      final docRef = FirebaseFirestore.instance.collection('bookingnow').doc(bookingId);
+      final snapshot = await docRef.get();
+      if (snapshot.exists) {
+        final data = snapshot.data() ?? {};
+        data['completedAt'] = FieldValue.serverTimestamp();
+        
+        await FirebaseFirestore.instance.collection('completedBookings').add(data);
+        
+        await docRef.delete();
       }
+      
+      _loadClients();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking marked as complete')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error completing booking: $e')),
+      );
     }
   }
 
-  Future<void> _deleteClientBooking(String bookingId, String clientName) async {
-    try {
-      bool confirmDelete = await showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Confirm Deletion'),
+  Future<void> _deleteBooking(String bookingId, String clientName) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Booking'),
           content: Text('Are you sure you want to delete the booking for $clientName?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
-        ),
-      ) ?? false;
-
-      if (!confirmDelete) return;
-
-      setState(() => _isLoading = true);
-
-      await FirebaseFirestore.instance.collection('bookingnow').doc(bookingId).delete();
-
-      await _fetchClientBookingsFromFirebase();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Booking for $clientName has been deleted'), backgroundColor: Colors.green),
         );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete booking: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  void _retryFetch() {
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-      _errorMessage = '';
-    });
-    _fetchClientBookingsFromFirebase();
-  }
-
-  Future<void> _sendNotification(String clientId, String clientName) async {
-    if (clientId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot send notification: Client ID not available'), backgroundColor: Colors.red),
-      );
-      return;
-    }
-
-    final TextEditingController messageController = TextEditingController();
-
-    bool? result = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Send Notification to $clientName'),
-        content: TextField(
-          controller: messageController,
-          decoration: const InputDecoration(
-            labelText: 'Message',
-            hintText: 'Enter your notification message',
-            border: OutlineInputBorder(),
-          ),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            child: const Text('Send'),
-          ),
-        ],
-      ),
+      },
     );
 
-    if (result == true && messageController.text.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance.collection('notifications').add({
-          'userId': clientId,
-          'message': messageController.text,
-          'sender': _providerName,
-          'read': false,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+    if (confirm != true) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Notification sent to $clientName'), backgroundColor: Colors.green),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send notification: $e'), backgroundColor: Colors.red),
-        );
-      }
+    try {
+      await FirebaseFirestore.instance
+          .collection('bookingnow')
+          .doc(bookingId)
+          .delete();
+      
+      _loadClients();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Booking for $clientName deleted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting booking: $e')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        if (_isLoading) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please wait, data is loading...'), duration: Duration(seconds: 2)),
-          );
-          return false;
-        }
-        return true;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('My Clients', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.teal,
-          centerTitle: true,
-          elevation: 0,
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => !_isLoading ? Navigator.pop(context) : null),
-          actions: [
-            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _isLoading ? null : _retryFetch, tooltip: 'Refresh'),
-          ],
+    final filteredClients = _getFilteredClients();
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'My Clients',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.teal)))
-            : _hasError
-                ? Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.red, size: 100),
-                      const SizedBox(height: 16),
-                      Text('Error Loading Client Data', style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 8),
-                      Text(_errorMessage, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _retryFetch, style: ElevatedButton.styleFrom(backgroundColor: Colors.teal), child: const Text('Retry')),
-                    ],
-                  ))
-                : _clientBookings.isEmpty
-                    ? Center(child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.calendar_today, color: Colors.grey, size: 80),
-                          const SizedBox(height: 16),
-                          Text('No Client Bookings Found', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 8),
-                          Text('You have no client bookings at the moment.', style: Theme.of(context).textTheme.bodyMedium),
-                        ],
-                      ))
-                    : Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              child: Text('Your Client Bookings', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                            ),
-                            Expanded(
-                              child: Card(
-                                elevation: 4,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: ListView(
-                                    children: [
-                                      SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: DataTable(
-                                          columnSpacing: 16,
-                                          dataRowHeight: 65,
-                                          headingRowColor: MaterialStateColor.resolveWith((states) => Colors.teal.shade50),
-                                          columns: const [
-                                            DataColumn(label: Text('Client Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            DataColumn(label: Text('Email', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            DataColumn(label: Text('Service', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            DataColumn(label: Text('Location', style: TextStyle(fontWeight: FontWeight.bold))),
-                                            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
-                                          ],
-                                          rows: _clientBookings.map((booking) {
-                                            return DataRow(cells: [
-                                              DataCell(Text(booking['name'] ?? '')),
-                                              DataCell(Text(booking['email'] ?? '')),
-                                              DataCell(Text(booking['service'] ?? '')),
-                                              DataCell(Text(booking['date'] ?? '')),
-                                              DataCell(Text(booking['time'] ?? '')),
-                                              DataCell(Text(booking['location'] ?? '')),
-                                              DataCell(Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  IconButton(
-                                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                                    onPressed: () => _deleteClientBooking(booking['bookingId'], booking['name']),
-                                                    tooltip: 'Delete booking',
-                                                  ),
-                                                  IconButton(
-                                                    icon: const Icon(Icons.notifications, color: Colors.amber),
-                                                    onPressed: booking['notificationsEnabled']
-                                                        ? () => _sendNotification(booking['clientId'], booking['name'])
-                                                        : null,
-                                                    tooltip: booking['notificationsEnabled']
-                                                        ? 'Send notification'
-                                                        : 'Notifications disabled',
-                                                  ),
-                                                ],
-                                              )),
-                                            ]);
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
+        actions: [
+          IconButton(
+            icon: Icon(isTableView ? Icons.view_list : Icons.grid_view),
+            tooltip: isTableView ? 'Switch to Card View' : 'Switch to Table View',
+            onPressed: () {
+              setState(() {
+                isTableView = !isTableView;
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: _loadClients,
+          ),
+        ],
+      ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+              ? Center(child: Text(errorMessage!, style: const TextStyle(color: Colors.red)))
+              : clients.isEmpty
+                  ? _buildEmptyState()
+                  : Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    hintText: 'Search clients...',
+                                    prefixIcon: const Icon(Icons.search),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                                   ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      searchQuery = value;
+                                    });
+                                  },
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 16),
+                              Text(
+                                '${filteredClients.length} client(s)',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        Expanded(
+                          child: isTableView
+                              ? _buildClientsTable(filteredClients)
+                              : _buildClientsCardList(filteredClients),
+                        ),
+                      ],
+                    ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.people_outline, size: 80, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          const Text(
+            'No Clients Yet',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'You don\'t have any confirmed bookings',
+            style: TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
+            onPressed: _loadClients,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClientsTable(List<Map<String, dynamic>> filteredClients) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: DataTable2(
+        columnSpacing: 12,
+        horizontalMargin: 12,
+        minWidth: 600,
+        showCheckboxColumn: false,
+        columns: [
+          DataColumn2(
+            label: const Text('CLIENT', style: TextStyle(fontWeight: FontWeight.bold)),
+            size: ColumnSize.L,
+            onSort: (columnIndex, ascending) {
+              setState(() {
+                sortColumn = 'name';
+                sortAscending = ascending;
+                _sortClients(clients);
+              });
+            },
+          ),
+          DataColumn2(
+            label: const Text('SERVICE', style: TextStyle(fontWeight: FontWeight.bold)),
+            size: ColumnSize.M,
+            onSort: (columnIndex, ascending) {
+              setState(() {
+                sortColumn = 'service';
+                sortAscending = ascending;
+                _sortClients(clients);
+              });
+            },
+          ),
+          DataColumn2(
+            label: const Text('DATE/TIME', style: TextStyle(fontWeight: FontWeight.bold)),
+            size: ColumnSize.M,
+            onSort: (columnIndex, ascending) {
+              setState(() {
+                sortColumn = 'date';
+                sortAscending = ascending;
+                _sortClients(clients);
+              });
+            },
+          ),
+          DataColumn2(
+            label: const Text('LOCATION', style: TextStyle(fontWeight: FontWeight.bold)),
+            size: ColumnSize.L,
+          ),
+          DataColumn2(
+            label: const Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold)),
+            size: ColumnSize.M,
+          ),
+        ],
+        rows: filteredClients.map<DataRow>((client) {
+          return DataRow(
+            cells: [
+              DataCell(
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: client['profileImage'] != null 
+                          ? NetworkImage(client['profileImage']) 
+                          : null,
+                      child: client['profileImage'] == null 
+                          ? Text((client['name'] ?? 'U')[0].toUpperCase()) 
+                          : null,
+                      radius: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            client['name'] ?? 'Unknown Client',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (client['email'] != null && client['email'] != 'N/A')
+                            Text(
+                              client['email'],
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
                       ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+                    ),
+                  ],
+                ),
+                onTap: () => _showClientDetailsDialog(context, client),
+              ),
+              DataCell(
+                Text(client['service'] ?? 'N/A'),
+                onTap: () => _showClientDetailsDialog(context, client),
+              ),
+              DataCell(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(client['date'] ?? 'N/A'),
+                    Text(
+                      client['time'] ?? 'N/A',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                onTap: () => _showClientDetailsDialog(context, client),
+              ),
+              DataCell(
+                Text(
+                  client['location'] ?? 'N/A',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => _showClientDetailsDialog(context, client),
+              ),
+              DataCell(
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      tooltip: 'Delete Booking',
+                      onPressed: () => _deleteBooking(client['id'], client['name'] ?? 'Client'),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                      tooltip: 'Mark Complete',
+                      onPressed: () => _completeBooking(client['id']),
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            onSelectChanged: (selected) {
+              if (selected == true) {
+                _showClientDetailsDialog(context, client);
+              }
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildClientsCardList(List<Map<String, dynamic>> filteredClients) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredClients.length,
+      itemBuilder: (context, index) {
+        final client = filteredClients[index];
+        return _buildClientCard(client);
+      },
+    );
+  }
+
+  Widget _buildClientCard(Map<String, dynamic> client) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  backgroundImage: client['profileImage'] != null 
+                      ? NetworkImage(client['profileImage']) 
+                      : null,
+                  child: client['profileImage'] == null 
+                      ? Text((client['name'] ?? 'U')[0].toUpperCase()) 
+                      : null,
+                  radius: 24,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        client['name'] ?? 'Unknown Client',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      if (client['email'] != null && client['email'] != 'N/A')
+                        Text(
+                          client['email'],
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      if (client['phone'] != null && client['phone'] != 'N/A')
+                        Text(
+                          client['phone'],
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: Text(
+                    client['status'] ?? 'Active',
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            _buildInfoRow('Service', client['service'] ?? 'N/A'),
+            _buildInfoRow('Date', client['date'] ?? 'N/A'),
+            _buildInfoRow('Time', client['time'] ?? 'N/A'),
+            _buildInfoRow('Location', client['location'] ?? 'N/A'),
+            _buildInfoRow('Booked on', _formatDate(client['timestamp'])),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  onPressed: () => _deleteBooking(client['id'], client['name'] ?? 'Client'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('Complete'),
+                  onPressed: () => _completeBooking(client['id']),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClientDetailsDialog(BuildContext context, Map<String, dynamic> client) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(client['name'] ?? 'Client Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (client['profileImage'] != null)
+                Center(
+                  child: CircleAvatar(
+                    backgroundImage: NetworkImage(client['profileImage']),
+                    radius: 40,
+                  ),
+                ),
+              if (client['profileImage'] == null)
+                Center(
+                  child: CircleAvatar(
+                    child: Text((client['name'] ?? 'U')[0].toUpperCase()),
+                    radius: 40,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              _buildDetailRow('Full Name', client['name'] ?? 'N/A'),
+              _buildDetailRow('Email', client['email'] ?? 'N/A'),
+              _buildDetailRow('Phone', client['phone'] ?? 'N/A'),
+              _buildDetailRow('Service', client['service'] ?? 'N/A'),
+              _buildDetailRow('Date', client['date'] ?? 'N/A'),
+              _buildDetailRow('Time', client['time'] ?? 'N/A'),
+              _buildDetailRow('Location', client['location'] ?? 'N/A'),
+              _buildDetailRow('Booked on', _formatDate(client['timestamp'])),
+              if (client['notes'] != null && client['notes'].isNotEmpty)
+                _buildDetailRow('Notes', client['notes']),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            label: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteBooking(client['id'], client['name'] ?? 'Client');
+            },
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Complete'),
+            onPressed: () {
+              Navigator.pop(context);
+              _completeBooking(client['id']);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16),
+          ),
+        ],
       ),
     );
   }

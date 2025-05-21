@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
-import 'package:mobile_service_hub/screen/NotificationsPage.dart';
 import 'package:mobile_service_hub/screen/ProviderClientsTableView.dart';
 import 'package:mobile_service_hub/screen/admin_notification.dart';
 import 'package:mobile_service_hub/screen/customer_notification.dart';
@@ -88,7 +87,7 @@ Navigator.pushReplacement(
               if (_userRole == 'Service Provider') {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => ProviderClientsTableView()),
+                  MaterialPageRoute(builder: (context) => EnhancedProviderClientsTableView()),
                 );
               } else {
                 Navigator.pushReplacement(
