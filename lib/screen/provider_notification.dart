@@ -28,16 +28,21 @@ class _ProviderNotificationsScreenState extends State<ProviderNotificationsScree
     _listenToNotifications();
   }
 
-  void _listenToNotifications() {
-    _notificationService.getProviderNotifications().listen((updatedNotifications) {
-      if (mounted) {
-        setState(() {
-          notifications = updatedNotifications;
-          isLoading = false;
-        });
-      }
+ void _listenToNotifications() {
+  _notificationService.getProviderNotifications().listen((updatedNotifications) {
+    print("Got notifications: ${updatedNotifications.length}");
+    setState(() {
+      notifications = updatedNotifications;
+      isLoading = false;
     });
-  }
+  }, onError: (e) {
+    print("Notification stream error: $e");
+    setState(() {
+      isLoading = false;
+    });
+  });
+}
+
 
   void _onAccept(NotificationModel notification) async {
     if (notification.bookingId == null || notification.clientData == null) return;

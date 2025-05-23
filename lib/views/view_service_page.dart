@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../modelRaghad/rating.dart';
-
 import '../repository/view_rating_repository.dart';
 import '../screen/Bookingform.dart';
 import '../widgets/detail_card_widget.dart';
 import '../widgets/rating_card_widget.dart';
 import '../widgets/service_image_widget.dart';
 import 'rating_page.dart';
-
 
 class ViewServicePage extends StatefulWidget {
   final Map<String, dynamic> service;
@@ -31,7 +29,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
   }
 
   Future<void> _loadRatings() async {
-final ratings = await _ratingRepository.loadRatings(service['id']);
+    final ratings = await _ratingRepository.loadRatings(service['id']);
     setState(() {
       service['ratings'] = ratings;
     });
@@ -149,10 +147,15 @@ final ratings = await _ratingRepository.loadRatings(service['id']);
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Service details
                     DetailCardWidget(title: 'Service Provider', content: service['user'] ?? 'N/A'),
+                    DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'), 
                     DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
                     DetailCardWidget(title: 'Price', content: '${service['price'] ?? 'N/A'} \$'),
+
                     const SizedBox(height: 16),
+
                     Align(
                       alignment: Alignment.centerLeft,
                       child: ElevatedButton.icon(
@@ -187,6 +190,7 @@ final ratings = await _ratingRepository.loadRatings(service['id']);
                       ),
                     ),
                     const SizedBox(height: 24),
+
                     if (service['ratings'].isNotEmpty) ...[
                       Text(
                         'Reviews:',

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
@@ -22,6 +23,8 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
   bool _notificationsEnabled = false;
   String _firstName = '';
   String _lastName = '';
+  String _phoneNumber = '';
+  String _location = '';
   bool _isLoading = true;
   Uint8List? _imageBytes;
 
@@ -30,34 +33,67 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
     super.initState();
     _loadUserProfile();
   }
+Future<void> _loadUserProfile() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final data = doc.data();
+      if (data != null) {
+        String firstName = data['firstName'] ?? '';
+        String lastName = data['lastName'] ?? '';
+        String phoneNumber = data['phone'] ?? '';
+        String location = '';
+        Uint8List? imageBytes;
 
-  Future<void> _loadUserProfile() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc =
-            await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        final data = doc.data();
-        if (data != null) {
-          setState(() {
-            _firstName = data['firstName'] ?? '';
-            _lastName = data['lastName'] ?? '';
-            _notificationsEnabled = data['notificationsEnabled'] ?? false;
-            final imageData = data['profileImage'];
-            if (imageData != null && imageData.isNotEmpty) {
-              _imageBytes = base64Decode(imageData);
+        final locationData = data['location'];
+        if (locationData != null && locationData is Map) {
+          final latitude = locationData['latitude'];
+          final longitude = locationData['longitude'];
+          if (latitude != null && longitude != null) {
+            final placemarks = await placemarkFromCoordinates(latitude, longitude);
+            final place = placemarks.first;
+            List<String> parts = [];
+
+            if (place.locality != null && place.locality!.isNotEmpty) {
+              parts.add(place.locality!);
+            } else if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+              parts.add(place.subLocality!);
             }
-            _isLoading = false;
-          });
+
+            if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
+              parts.add(place.administrativeArea!);
+            }
+
+            if (place.country != null && place.country!.isNotEmpty) {
+              parts.add(place.country!);
+            }
+
+            location = parts.join(", ");
+          }
         }
+
+        final imageData = data['profileImage'];
+        if (imageData != null && imageData.isNotEmpty) {
+          imageBytes = base64Decode(imageData);
+        }
+
+        setState(() {
+          _firstName = firstName;
+          _lastName = lastName;
+          _phoneNumber = phoneNumber;
+          _location = location;
+          _imageBytes = imageBytes;
+          _isLoading = false;
+        });
       }
-    } catch (e) {
-      print("Error fetching user profile: $e");
-      setState(() {
-        _isLoading = false;
-      });
     }
+  } catch (e) {
+    print("Error fetching user profile: $e");
+    setState(() => _isLoading = false);
   }
+}
+
 
   Future<void> _updateUserProfileField(String field, String value) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -68,6 +104,8 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
       setState(() {
         if (field == 'firstName') _firstName = value;
         if (field == 'lastName') _lastName = value;
+        if (field == 'phoneNumber') _phoneNumber = value;
+        if (field == 'location') _location = value;
       });
     }
   }
@@ -228,23 +266,14 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
   Future<void> _deleteAccountWithReauth() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-
       if (user != null) {
         String? email = user.email;
-
-        if (email == null) {
-          throw Exception("User email not found.");
-        }
-
+        if (email == null) throw Exception("User email not found.");
         String? password = await _promptPassword();
-
         if (password == null || password.isEmpty) return;
 
-        AuthCredential credential =
-            EmailAuthProvider.credential(email: email, password: password);
-
+        AuthCredential credential = EmailAuthProvider.credential(email: email, password: password);
         await user.reauthenticateWithCredential(credential);
-
         await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
         await user.delete();
 
@@ -255,12 +284,10 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      print("Firebase error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Authentication error")),
       );
     } catch (e) {
-      print("Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Account deletion failed")),
       );
@@ -270,9 +297,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -295,8 +320,7 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                     radius: 70,
                     backgroundImage: _imageBytes != null
                         ? MemoryImage(_imageBytes!)
-                        : const AssetImage('assets/images/person1.jpg')
-                            as ImageProvider,
+                        : const AssetImage('assets/images/person1.jpg') as ImageProvider,
                   ),
                   Container(
                     decoration: const BoxDecoration(
@@ -339,22 +363,29 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
                 fieldKey: 'lastName',
               ),
             ),
-            SwitchListTile(
-              secondary: const Icon(Icons.notifications),
-              title: const Text("Notifications"),
-              value: _notificationsEnabled,
-              onChanged: (val) => setState(() => _notificationsEnabled = val),
+            _buildProfileTile(
+              icon: Icons.phone,
+              title: "Phone Number",
+              value: _phoneNumber,
+              onTap: () => _editTextField(
+                title: "Edit Phone Number",
+                initialValue: _phoneNumber,
+                hintText: "Enter phone number",
+                fieldKey: 'phoneNumber',
+              ),
             ),
-            _buildSimpleTile(
-              icon: Icons.build,
-              text: "My Services",
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => ServicesPage()),
-                );
-              },
+            _buildProfileTile(
+              icon: Icons.location_on,
+              title: "Location",
+              value: _location,
+              onTap: () => _editTextField(
+                title: "Edit Location",
+                initialValue: _location,
+                hintText: "Enter location",
+                fieldKey: 'location',
+              ),
             ),
+    
             const SizedBox(height: 30),
             _buildSimpleTile(
               icon: Icons.lock_reset,
@@ -400,27 +431,34 @@ class _ServiceProviderProfileState extends State<ServiceProviderProfile> {
     );
   }
 
-  Widget _buildProfileTile({
-    required IconData icon,
-    required String title,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      trailing: InkWell(
+Widget _buildProfileTile({
+  required IconData icon,
+  required String title,
+  required String value,
+  required VoidCallback onTap,
+}) {
+  return ListTile(
+    leading: Icon(icon),
+    title: Text(title),
+    trailing: Container(
+      width: 160,  
+      child: InkWell(
         onTap: onTap,
         child: Text(
           value,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.right,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             decoration: TextDecoration.underline,
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildSimpleTile({
     required IconData icon,

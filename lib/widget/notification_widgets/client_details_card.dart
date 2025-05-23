@@ -28,25 +28,28 @@ class ClientDetailsCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _buildInfoRow('Name', clientData['name'] ?? ''),
-            _buildInfoRow('Email', clientData['email'] ?? ''),
             _buildInfoRow('Phone', clientData['phone'] ?? ''),
             _buildInfoRow('Service', clientData['service'] ?? ''),
             _buildInfoRow('Date', clientData['date'] ?? ''),
             _buildInfoRow('Time', clientData['time'] ?? ''),
-            _buildInfoRow('Notes', clientData['notes'] ?? ''),
+       _buildInfoRow('Location', clientData['location'] ?? '', wrapValue: true),
+
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {bool wrapValue = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
+         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(value),
+         wrapValue
+            ? Expanded(child: Text(value, softWrap: true))
+            : Text(value),
         ],
       ),
     );

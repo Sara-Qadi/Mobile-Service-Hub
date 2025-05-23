@@ -42,18 +42,25 @@ class BookingDetailsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(value),
-        ],
-      ),
-    );
-  }
+Widget _buildInfoRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label:',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          softWrap: true,
+          style: const TextStyle(fontSize: 16),
+        ),
+      ],
+    ),
+  );
+}
+
 }

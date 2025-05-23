@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import '../widgets/image_picker_widget.dart';
 import '../widgets/service_form_field.dart';
 import '../repository/add-service_repository.dart';
-
 
 class AddServicePage extends StatefulWidget {
   @override
@@ -18,6 +18,8 @@ class _AddServicePageState extends State<AddServicePage> {
   final detailsController = TextEditingController();
   final priceController = TextEditingController();
   final userController = TextEditingController();
+  final phoneController = TextEditingController();
+
   Uint8List? _imageBytes;
   bool isFormValid = false;
 
@@ -31,12 +33,33 @@ class _AddServicePageState extends State<AddServicePage> {
   final double buttonPaddingVertical = 12;
   final double buttonBorderRadius = 10;
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchPhoneNumber();
+  }
+
+  void _fetchPhoneNumber() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data.containsKey('phone')) {
+          phoneController.text = data['phone'];
+          _validateForm();
+        }
+      }
+    }
+  }
+
   void _validateForm() {
     setState(() {
       isFormValid = nameController.text.isNotEmpty &&
           detailsController.text.isNotEmpty &&
           priceController.text.isNotEmpty &&
-          userController.text.isNotEmpty;
+          userController.text.isNotEmpty &&
+          phoneController.text.isNotEmpty;
     });
   }
 
@@ -68,6 +91,14 @@ class _AddServicePageState extends State<AddServicePage> {
               controller: userController,
               label: 'User Name',
               hint: 'Enter your name',
+              onChanged: _validateForm,
+            ),
+            SizedBox(height: spaceMedium),
+            ServiceFormField(
+              controller: phoneController,
+              label: 'Phone Number',
+              hint: 'Enter your phone number',
+              isNumber: true,
               onChanged: _validateForm,
             ),
             SizedBox(height: spaceMedium),
@@ -106,6 +137,7 @@ class _AddServicePageState extends State<AddServicePage> {
                       final newService = {
                         'user': userController.text,
                         'userId': user.uid,
+                        'phone': phoneController.text,
                         'name': nameController.text,
                         'details': detailsController.text,
                         'price': priceController.text,

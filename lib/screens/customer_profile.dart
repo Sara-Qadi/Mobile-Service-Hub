@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,6 +22,9 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   String _lastName = '';
   String userId = '';
   Uint8List? _imageBytes;
+  String _location = '';
+String _phone = '';
+
 
   @override
   void initState() {
@@ -28,39 +32,70 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     _getUserData();
   }
 
-  Future<void> _getUserData() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        userId = user.uid;
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .get();
+Future<void> _getUserData() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      userId = user.uid;
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
 
-        if (userDoc.exists) {
-          final data = userDoc.data() as Map<String, dynamic>;
-          final imageData = data.containsKey('profileImage') ? data['profileImage'] : null;
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        String locationString = '';
+        Uint8List? imageBytes;
 
-          setState(() {
-            _firstName = data['firstName'] ?? '';
-            _lastName = data['lastName'] ?? '';
-            _notificationsEnabled = data['notificationsEnabled'] ?? false;
-
-            if (imageData != null && imageData.isNotEmpty) {
-              try {
-                _imageBytes = base64Decode(imageData);
-              } catch (e) {
-                print("Error decoding image: $e");
-              }
-            }
-          });
+        // Decode image if exists
+        final imageData = data['profileImage'];
+        if (imageData != null && imageData.isNotEmpty) {
+          imageBytes = base64Decode(imageData);
         }
+
+        // Handle location
+        final locationData = data['location'];
+        if (locationData != null && locationData is Map) {
+          final latitude = locationData['latitude'];
+          final longitude = locationData['longitude'];
+          if (latitude != null && longitude != null) {
+            final placemarks = await placemarkFromCoordinates(latitude, longitude);
+            final place = placemarks.first;
+            List<String> parts = [];
+
+            if (place.locality != null && place.locality!.isNotEmpty) {
+              parts.add(place.locality!);
+            } else if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+              parts.add(place.subLocality!);
+            }
+
+            if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
+              parts.add(place.administrativeArea!);
+            }
+
+            if (place.country != null && place.country!.isNotEmpty) {
+              parts.add(place.country!);
+            }
+
+            locationString = parts.join(", ");
+          }
+        }
+
+        // Now update the UI synchronously inside setState
+        setState(() {
+          _firstName = data['firstName'] ?? '';
+          _lastName = data['lastName'] ?? '';
+          _phone = data['phone'] ?? '';
+          _location = locationString;
+          _imageBytes = imageBytes;
+        });
       }
-    } catch (e) {
-      print("Error fetching user data: $e");
     }
+  } catch (e) {
+    print("Error fetching user data: $e");
   }
+}
+
 
 
     Future<void> _updateUserProfileField(String field, String value) async {
@@ -330,20 +365,27 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
                 fieldKey: 'lastName',
               ),
             ),
-            SwitchListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              secondary: const Icon(Icons.notifications, size: 28),
-              title: const Text("Notifications", style: TextStyle(fontSize: 18)),
-              value: _notificationsEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _notificationsEnabled = value;
-                });
-                FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(userId)
-                    .update({'notificationsEnabled': _notificationsEnabled});
-              },
+          _buildProfileTile(
+              icon: Icons.phone,
+              title: "Phone Number",
+              value: _phone,
+              onTap: () => _editTextField(
+                title: "Edit Phone Number",
+                initialValue: _phone,
+                hintText: "Enter phone number",
+                fieldKey: 'phoneNumber',
+              ),
+            ),
+            _buildProfileTile(
+              icon: Icons.location_on,
+              title: "Location",
+              value: _location,
+              onTap: () => _editTextField(
+                title: "Edit Location",
+                initialValue: _location,
+                hintText: "Enter location",
+                fieldKey: 'location',
+              ),
             ),
             const SizedBox(height: 50),
             _buildListTile(
@@ -388,27 +430,33 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     );
   }
   
-  Widget _buildProfileTile({
-    required IconData icon,
-    required String title,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      trailing: InkWell(
+Widget _buildProfileTile({
+  required IconData icon,
+  required String title,
+  required String value,
+  required VoidCallback onTap,
+}) {
+  return ListTile(
+    leading: Icon(icon),
+    title: Text(title),
+    trailing: Container(
+      width: 160,  
+      child: InkWell(
         onTap: onTap,
         child: Text(
           value,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.right,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             decoration: TextDecoration.underline,
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildListTile({
     required IconData icon,

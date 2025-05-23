@@ -20,6 +20,7 @@ class _UpdateServicePageState extends State<UpdateService> {
   final detailsController = TextEditingController();
   final priceController = TextEditingController();
   final userController = TextEditingController();
+  final phoneController = TextEditingController();
 
   Uint8List? _imageBytes;
   final _repository = updateServiceRepository();
@@ -37,6 +38,7 @@ class _UpdateServicePageState extends State<UpdateService> {
     detailsController.text = service['details'];
     priceController.text = service['price'];
     userController.text = service['user'];
+    phoneController.text = service['phone'] ?? ''; 
     _imageBytes = base64Decode(service['imageBytes']);
   }
 
@@ -58,6 +60,7 @@ class _UpdateServicePageState extends State<UpdateService> {
   Future<void> _submitUpdate() async {
     final updatedService = {
       'user': userController.text,
+      'phone': phoneController.text, 
       'name': nameController.text,
       'details': detailsController.text,
       'price': priceController.text,
@@ -88,6 +91,12 @@ class _UpdateServicePageState extends State<UpdateService> {
             ),
             SizedBox(height: spacingMedium),
             TextFieldWidget(controller: userController, labelText: 'User Name'),
+            SizedBox(height: spacingMedium),
+            TextFieldWidget(
+              controller: phoneController,
+              labelText: 'Phone Number',
+              keyboardType: TextInputType.phone,
+            ),
             SizedBox(height: spacingMedium),
             TextFieldWidget(controller: nameController, labelText: 'Service Name'),
             SizedBox(height: spacingSmall),
