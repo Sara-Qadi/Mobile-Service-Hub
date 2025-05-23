@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
-import 'package:firebase_core/firebase_core.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
 import '../widgets/image_picker_widget.dart';
 import '../widgets/service_form_field.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../repository/add-service_repository.dart';
 
 class AddServicePage extends StatefulWidget {
   @override
@@ -18,9 +18,12 @@ class _AddServicePageState extends State<AddServicePage> {
   final detailsController = TextEditingController();
   final priceController = TextEditingController();
   final userController = TextEditingController();
+  final phoneController = TextEditingController();
+
   Uint8List? _imageBytes;
   bool isFormValid = false;
-   final double paddingAll = 16.0;
+
+  final double paddingAll = 16.0;
   final double spaceSmall = 16.0;
   final double spaceMedium = 20.0;
   final double spaceLarge = 24.0;
@@ -30,12 +33,33 @@ class _AddServicePageState extends State<AddServicePage> {
   final double buttonPaddingVertical = 12;
   final double buttonBorderRadius = 10;
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchPhoneNumber();
+  }
+
+  void _fetchPhoneNumber() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data.containsKey('phone')) {
+          phoneController.text = data['phone'];
+          _validateForm();
+        }
+      }
+    }
+  }
+
   void _validateForm() {
     setState(() {
       isFormValid = nameController.text.isNotEmpty &&
           detailsController.text.isNotEmpty &&
           priceController.text.isNotEmpty &&
-          userController.text.isNotEmpty;
+          userController.text.isNotEmpty &&
+          phoneController.text.isNotEmpty;
     });
   }
 
@@ -45,21 +69,18 @@ class _AddServicePageState extends State<AddServicePage> {
     });
   }
 
-  Future<void> addService(Map<String, dynamic> newService) async {
-  try {
-    final docRef = await FirebaseFirestore.instance.collection('services').add(newService);
-    await docRef.update({'id': docRef.id}); // إضافة الـ id داخل المستند نفسه
-    print("Service added successfully with ID: ${docRef.id}");
-  } catch (e) {
-    print("Error adding service: $e");
-  }
-}
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Add Service', style: TextStyle(fontSize: appBarFontSize, fontWeight: FontWeight.bold))),
+      appBar: AppBar(
+        title: Text(
+          'Add Service',
+          style: TextStyle(
+            fontSize: appBarFontSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(paddingAll),
         child: Column(
@@ -70,6 +91,14 @@ class _AddServicePageState extends State<AddServicePage> {
               controller: userController,
               label: 'User Name',
               hint: 'Enter your name',
+              onChanged: _validateForm,
+            ),
+            SizedBox(height: spaceMedium),
+            ServiceFormField(
+              controller: phoneController,
+              label: 'Phone Number',
+              hint: 'Enter your phone number',
+              isNumber: true,
               onChanged: _validateForm,
             ),
             SizedBox(height: spaceMedium),
@@ -97,48 +126,52 @@ class _AddServicePageState extends State<AddServicePage> {
             ),
             SizedBox(height: spaceLarge),
             ElevatedButton(
-onPressed: isFormValid
-    ? () async {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) {
-          print("User not logged in!");
-          return;
-        }
+              onPressed: isFormValid
+                  ? () async {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) {
+                        print("User not logged in!");
+                        return;
+                      }
 
-        final newService = {
-          'user': userController.text,
-          'userId': user.uid, // ✅ Add this
-          'name': nameController.text,
-          'details': detailsController.text,
-          'price': priceController.text,
-          'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : '',
-        };
+                      final newService = {
+                        'user': userController.text,
+                        'userId': user.uid,
+                        'phone': phoneController.text,
+                        'name': nameController.text,
+                        'details': detailsController.text,
+                        'price': priceController.text,
+                        'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : '',
+                      };
 
-        try {
-          final docRef = await FirebaseFirestore.instance
-              .collection('services')
-              .add(newService);
-          await docRef.update({'id': docRef.id}); 
+                      final repository = addServiceRepository();
+                      final serviceId = await repository.addService(newService);
 
-          Navigator.pop(context, docRef.id); 
-        } catch (e) {
-          print("Error adding service: $e");
-        }
-      }
-    : null,
-
-  child: Padding(
-    padding: EdgeInsets.symmetric(horizontal: buttonPaddingHorizontal, vertical: buttonPaddingVertical),
-    child: Text('Add Service', style: TextStyle(fontSize: buttonFontSize, fontWeight: FontWeight.bold)),
-  ),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: isFormValid ? AppColors.primary : AppColors.shadow,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(buttonBorderRadius),
-    ),
-  ),
-),
-
+                      if (serviceId != null) {
+                        Navigator.pop(context, serviceId);
+                      }
+                    }
+                  : null,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: buttonPaddingHorizontal,
+                  vertical: buttonPaddingVertical,
+                ),
+                child: Text(
+                  'Add Service',
+                  style: TextStyle(
+                    fontSize: buttonFontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isFormValid ? AppColors.primary : AppColors.shadow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(buttonBorderRadius),
+                ),
+              ),
+            ),
           ],
         ),
       ),

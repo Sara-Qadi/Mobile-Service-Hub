@@ -1,138 +1,143 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import '../models/notification_model.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
 
-// class NotificationService {
-//   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-//   final FirebaseAuth _auth = FirebaseAuth.instance;
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/notification_model.dart';
+
+class NotificationService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   
-//   // Get current user ID
-//   String? get currentUserId => _auth.currentUser?.uid;
-
-//   // Reference to notifications collection
-//   CollectionReference get _notificationsRef => 
-//       _firestore.collection('notifications');
-
-//   // Get notifications for current user
-//   Stream<List<NotificationModel>> getNotifications() {
-//     if (currentUserId == null) {
-//       // Return empty list if no user is logged in
-//       return Stream.value([]);
-//     }
+  String? get currentUserId => _auth.currentUser?.uid;
+  
+  Stream<List<NotificationModel>> getProviderNotifications() {
+    if (currentUserId == null) return Stream.value([]);
     
-//     return _notificationsRef
-//         .where('userId', isEqualTo: currentUserId)
-//         .orderBy('createdAt', descending: true)
-//         .snapshots()
-//         .map((snapshot) {
-//           return snapshot.docs
-//               .map((doc) => NotificationModel.fromFirestore(doc))
-//               .toList();
-//         });
-//   }
-
-//   // Mark notification as read
-//   Future<void> markAsRead(String notificationId) async {
-//     return _notificationsRef
-//         .doc(notificationId)
-//         .update({'isRead': true});
-//   }
-
-//   // Mark all notifications as read
-//   Future<void> markAllAsRead() async {
-//     if (currentUserId == null) return;
+    return _firestore
+        .collection('notifications')
+        .where('providerId', isEqualTo: currentUserId) 
+        .where('type', whereIn: ['clientRequest', 'booking_rejected', 'info']) 
+        .orderBy('time', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => NotificationModel.fromFirestore(doc))
+              .where((notification) => 
+                notification.providerId == currentUserId
+              )
+              .toList();
+        });
+  }
+  
+  Stream<List<NotificationModel>> getClientNotifications() {
+    if (currentUserId == null) return Stream.value([]);
     
-//     QuerySnapshot querySnapshot = await _notificationsRef
-//         .where('userId', isEqualTo: currentUserId)
-//         .where('isRead', isEqualTo: false)
-//         .get();
+    return _firestore
+        .collection('notifications')
+        .where('clientId', isEqualTo: currentUserId)
+        .where('type', whereIn: ['booking', 'approval', 'info', 'booking_rejected']) 
+        .orderBy('time', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => NotificationModel.fromFirestore(doc))
+              .where((notification) => 
+                notification.clientId == currentUserId
+              )
+              .toList();
+        });
+  }
+  
+  
+  Future<void> markAsRead(String id) async {
+    await _firestore.collection('notifications').doc(id).update({'isRead': true});
+  }
+  
+  Future<void> markAllAsRead(List<NotificationModel> notifications) async {
+    final batch = _firestore.batch();
+    for (var notification in notifications) {
+      if (!notification.isRead) { 
+        batch.update(
+          _firestore.collection('notifications').doc(notification.id),
+          {'isRead': true},
+        );
+      }
+    }
+    await batch.commit();
+  }
+  
+  Future<void> deleteNotification(String id) async {
+    await _firestore.collection('notifications').doc(id).delete();
+  }
+  
+  Future<void> sendNotificationToClient({
+    required String clientId,
+    required String message,
+    String? title,
+    Map<String, dynamic>? bookingData,
+    String? type,
+    String? bookingId
+  }) async {
+    await _firestore.collection('notifications').add({
+      'clientId': clientId, 
+      'providerId': currentUserId, 
+      'title': title ?? 'Booking Update',
+      'message': message,
+      'isRead': false,
+      'time': FieldValue.serverTimestamp(),
+      'type': type ?? 'booking',
+      'bookingData': bookingData,
+      'bookingId': bookingId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'notificationFor': 'client', 
+    });
+  }
+  
+  Future<void> sendNotificationToProvider({
+    required String providerId,
+    required String message,
+    String? title,
+    Map<String, dynamic>? clientData,
+    String? type,
+    String? bookingId
+  }) async {
+    await _firestore.collection('notifications').add({
+      'clientId': currentUserId,
+      'providerId': providerId, 
+      'title': title ?? 'New Request',
+      'message': message,
+      'isRead': false,
+      'time': FieldValue.serverTimestamp(),
+      'type': type ?? 'clientRequest',
+      'clientData': clientData,
+      'bookingId': bookingId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'notificationFor': 'provider',   
+    });
+  }
+  
+  Future<void> updateBookingStatus(String bookingId, String status) async {
+    await _firestore.collection('bookings').doc(bookingId).update({'status': status});
+  }
+  
+  Future<void> cleanUpOldNotifications() async {
+    final thirtyDaysAgo = Timestamp.fromDate(
+      DateTime.now().subtract(const Duration(days: 30))
+    );
     
-//     WriteBatch batch = _firestore.batch();
+    final querySnapshot = await _firestore
+        .collection('notifications')
+        .where('createdAt', isLessThan: thirtyDaysAgo)
+        .where('isRead', isEqualTo: true)
+        .get();
     
-//     querySnapshot.docs.forEach((doc) {
-//       batch.update(doc.reference, {'isRead': true});
-//     });
+    final batch = _firestore.batch();
+    for (var doc in querySnapshot.docs) {
+      batch.delete(doc.reference);
+    }
     
-//     return batch.commit();
-//   }
-
-//   // Delete notification
-//   Future<void> deleteNotification(String notificationId) async {
-//     return _notificationsRef.doc(notificationId).delete();
-//   }
-
-//   // Create new notification (useful for testing)
-//   Future<Future<DocumentReference<Object?>>> createNotification(NotificationModel notification) async {
-//     return _notificationsRef.add(notification.toFirestore());
-//   }
-
-//   // Get notification details (provider, booking, client)
-//   Future<Map<String, dynamic>?> getRelatedData(NotificationModel notification) async {
-//     try {
-//       switch (notification.type) {
-//         case NotificationType.provider:
-//           if (notification.providerId != null) {
-//             final providerDoc = await _firestore
-//                 .collection('providers')
-//                 .doc(notification.providerId)
-//                 .get();
-            
-//             if (providerDoc.exists) {
-//               final data = providerDoc.data() as Map<String, dynamic>;
-              
-//               // Convert to string map for UI
-//               return Map<String, String>.from(
-//                 data.map((key, value) => MapEntry(key, value.toString()))
-//               );
-//             }
-//           }
-//           break;
-          
-//         case NotificationType.booking:
-//         case NotificationType.reminder:
-//           if (notification.bookingId != null) {
-//             final bookingDoc = await _firestore
-//                 .collection('bookings')
-//                 .doc(notification.bookingId)
-//                 .get();
-            
-//             if (bookingDoc.exists) {
-//               final data = bookingDoc.data() as Map<String, dynamic>;
-              
-//               // Convert to string map for UI
-//               return Map<String, String>.from(
-//                 data.map((key, value) => MapEntry(key, value.toString()))
-//               );
-//             }
-//           }
-//           break;
-          
-//         case NotificationType.clientRequest:
-//           if (notification.clientId != null) {
-//             final clientDoc = await _firestore
-//                 .collection('clients')
-//                 .doc(notification.clientId)
-//                 .get();
-            
-//             if (clientDoc.exists) {
-//               final data = clientDoc.data() as Map<String, dynamic>;
-              
-//               // Convert to string map for UI
-//               return Map<String, String>.from(
-//                 data.map((key, value) => MapEntry(key, value.toString()))
-//               );
-//             }
-//           }
-//           break;
-          
-//         default:
-//           // No related data to fetch
-//           return null;
-//       }
-//     } catch (e) {
-//       print('Error fetching related data: $e');
-//     }
-    
-//     return null;
-//   }
-// }
+    if (querySnapshot.docs.isNotEmpty) {
+      await batch.commit();
+    }
+  }
+}

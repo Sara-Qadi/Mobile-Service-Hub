@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import '../repository/update-service_repository.dart';
 import '../widgets/text_field_widget.dart';
 import '../widgets/update_button_widget.dart';
 import '../widgets/image_pickerr_widget.dart';
@@ -20,13 +20,15 @@ class _UpdateServicePageState extends State<UpdateService> {
   final detailsController = TextEditingController();
   final priceController = TextEditingController();
   final userController = TextEditingController();
+  final phoneController = TextEditingController();
 
   Uint8List? _imageBytes;
-   static const double paddingAll = 16.0;
+  final _repository = updateServiceRepository();
+
+  static const double paddingAll = 16.0;
   static const double spacingSmall = 16.0;
   static const double spacingMedium = 20.0;
   static const double spacingLarge = 24.0;
-
 
   @override
   void initState() {
@@ -36,46 +38,43 @@ class _UpdateServicePageState extends State<UpdateService> {
     detailsController.text = service['details'];
     priceController.text = service['price'];
     userController.text = service['user'];
+    phoneController.text = service['phone'] ?? ''; 
     _imageBytes = base64Decode(service['imageBytes']);
   }
 
   Future<void> _pickImage() async {
     try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-      if (pickedFile != null) {
-        final bytes = await pickedFile.readAsBytes();
+      final bytes = await _repository.pickImage();
+      if (bytes != null) {
         setState(() {
           _imageBytes = bytes;
         });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to select image: ${e.toString()}')),
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
 
-  void _submitUpdate() {
-    if (nameController.text.isEmpty ||
-        detailsController.text.isEmpty ||
-        priceController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
-    }
-
+  Future<void> _submitUpdate() async {
     final updatedService = {
       'user': userController.text,
+      'phone': phoneController.text, 
       'name': nameController.text,
       'details': detailsController.text,
       'price': priceController.text,
       'imageBytes': base64Encode(_imageBytes ?? Uint8List(0)),
     };
 
-    Navigator.pop(context, updatedService);
+    try {
+      await _repository.submitUpdate(widget.service['id'], updatedService);
+      Navigator.pop(context, updatedService);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 
   @override
@@ -92,6 +91,12 @@ class _UpdateServicePageState extends State<UpdateService> {
             ),
             SizedBox(height: spacingMedium),
             TextFieldWidget(controller: userController, labelText: 'User Name'),
+            SizedBox(height: spacingMedium),
+            TextFieldWidget(
+              controller: phoneController,
+              labelText: 'Phone Number',
+              keyboardType: TextInputType.phone,
+            ),
             SizedBox(height: spacingMedium),
             TextFieldWidget(controller: nameController, labelText: 'Service Name'),
             SizedBox(height: spacingSmall),

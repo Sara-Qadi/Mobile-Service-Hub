@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widget/booking_widgets/booking_form_fields.dart';
 import '../widget/bottom_nav_bar.dart';
+import 'package:geocoding/geocoding.dart';
 
 class BookingForm extends StatefulWidget {
   final Map<String, dynamic> service;
@@ -15,6 +16,7 @@ class BookingForm extends StatefulWidget {
 
 class _BookingFormState extends State<BookingForm> {
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
   final _timeController = TextEditingController();
   final _dateController = TextEditingController();
@@ -31,6 +33,7 @@ class _BookingFormState extends State<BookingForm> {
     super.initState();
 
     _nameController.addListener(_validateForm);
+    _phoneController.addListener(_validateForm);
     _locationController.addListener(_validateForm);
     _timeController.addListener(_validateForm);
     _dateController.addListener(_validateForm);
@@ -40,21 +43,74 @@ class _BookingFormState extends State<BookingForm> {
     serviceId = widget.service['id'] ?? '';
     providerId = widget.service['userId'] ?? '';
 
+    _fetchUserData();
     _validateForm();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _locationController.dispose();
     _timeController.dispose();
     _dateController.dispose();
     super.dispose();
   }
 
+  void _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final profileDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (profileDoc.exists) {
+          final profileData = profileDoc.data();
+          final locationData = profileData?['location'];
+
+          if (locationData != null && locationData is Map<String, dynamic>) {
+            final lat = locationData['latitude'];
+            final lng = locationData['longitude'];
+            if (lat != null && lng != null) {
+              try {
+                List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+                if (placemarks.isNotEmpty) {
+                  final placemark = placemarks.first;
+                  final address = '${placemark.street}, ${placemark.locality}, ${placemark.country}';
+                  _locationController.text = address;
+                } else {
+                  _locationController.text = 'Location not found';
+                }
+              } catch (e) {
+                print('Geocoding error: $e');
+                _locationController.text = 'Error retrieving location';
+              }
+            }
+          }
+
+          final firstName = profileData?['firstName'] ?? '';
+          final lastName = profileData?['lastName'] ?? '';
+          if (firstName.isNotEmpty || lastName.isNotEmpty) {
+            _nameController.text = '$firstName $lastName';
+          }
+
+          final phone = profileData?['phone'] ?? '';
+          if (phone.isNotEmpty) {
+            _phoneController.text = phone;
+          }
+        }
+      } catch (e) {
+        print("Error fetching profile data: $e");
+      }
+    }
+  }
+
   void _validateForm() {
     setState(() {
       _isFormValid = _nameController.text.isNotEmpty &&
+          _phoneController.text.isNotEmpty &&
           _locationController.text.isNotEmpty &&
           _timeController.text.isNotEmpty &&
           _dateController.text.isNotEmpty;
@@ -151,6 +207,7 @@ class _BookingFormState extends State<BookingForm> {
     try {
       final bookingRef = await FirebaseFirestore.instance.collection('bookings').add({
         'name': _nameController.text,
+        'phone': _phoneController.text,
         'location': _locationController.text,
         'time': Timestamp.fromDate(bookingDateTime),
         'date': _dateController.text,
@@ -175,12 +232,13 @@ class _BookingFormState extends State<BookingForm> {
         'clientId': user.uid,
         'clientData': {
           'name': _nameController.text,
+          'phone': _phoneController.text,
           'location': _locationController.text,
           'service': serviceName,
           'date': _dateController.text,
           'time': _timeController.text,
           'notes': '',
-              'clientId': user.uid,
+          'clientId': user.uid,
         },
       });
 
@@ -204,10 +262,7 @@ class _BookingFormState extends State<BookingForm> {
       appBar: AppBar(
         title: const Text(
           'Booking',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
       ),
       body: Padding(
@@ -216,36 +271,20 @@ class _BookingFormState extends State<BookingForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'The service: $serviceName',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
+              Text('The service: $serviceName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              Text(
-                'The service Provider: $serviceProvider',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
+              Text('The service Provider: $serviceProvider', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
               const SizedBox(height: 24),
-              LabeledTextField(
-                label: 'Name',
-                hintText: 'Enter your name',
-                controller: _nameController,
-              ),
-              LabeledTextField(
-                label: 'Location',
-                hintText: 'Enter your location',
-                controller: _locationController,
-              ),
+              LabeledTextField(label: 'Name', hintText: 'Enter your name', controller: _nameController),
+              LabeledTextField(label: 'Phone Number', hintText: 'Enter your phone number', controller: _phoneController),
+              LabeledTextField(label: 'Location', hintText: 'Enter your location', controller: _locationController),
               LabeledTextField(
                 label: 'Time',
                 hintText: 'Enter the time you want',
                 controller: _timeController,
                 readOnly: true,
                 onTap: _selectTime,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _selectTime,
-                ),
+                suffixIcon: IconButton(icon: const Icon(Icons.access_time), onPressed: _selectTime),
               ),
               LabeledTextField(
                 label: 'Date',
@@ -253,10 +292,7 @@ class _BookingFormState extends State<BookingForm> {
                 controller: _dateController,
                 readOnly: true,
                 onTap: _selectDate,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _selectDate,
-                ),
+                suffixIcon: IconButton(icon: const Icon(Icons.calendar_today), onPressed: _selectDate),
               ),
               const SizedBox(height: 16),
               ActionButton(
