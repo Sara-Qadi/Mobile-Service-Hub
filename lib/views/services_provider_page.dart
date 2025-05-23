@@ -17,7 +17,6 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
   TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredServices = [];
 
-  // Map to cache provider userId to their profile image bytes
   final Map<String, Uint8List?> _profileImagesCache = {};
 
   @override
@@ -26,7 +25,6 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
     filteredServices = widget.services;
     _searchController.addListener(_filterServices);
 
-    // Preload profile images for all services' providers
     _preloadProfileImages();
   }
 
@@ -41,14 +39,12 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
   }
 
   Future<void> _preloadProfileImages() async {
-    // Get all unique provider identifiers from services
     final providerIds = widget.services
         .map((service) => service['userId'] as String?)
         .whereType<String>()
         .toSet();
 
     for (final userId in providerIds) {
-      // Fetch profile image once and cache it
       final imageBytes = await _fetchUserProfileImage(userId);
       setState(() {
         _profileImagesCache[userId] = imageBytes;
@@ -67,7 +63,7 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
     } catch (e) {
       print("Error fetching profile image for $userId: $e");
     }
-    return null; // Return null if no image or error
+    return null; 
   }
 
   @override
