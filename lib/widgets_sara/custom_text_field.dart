@@ -7,10 +7,10 @@ class CustomTextField extends StatelessWidget {
   final String label;
   final String hint;
   final bool obscureText;
+  final bool readOnly; // ✅ Add this
   final Widget? suffixIcon;
   final void Function(String)? onChanged;
   final TextInputType? keyboardType;
-
 
   const CustomTextField({
     super.key,
@@ -18,6 +18,7 @@ class CustomTextField extends StatelessWidget {
     required this.label,
     required this.hint,
     this.obscureText = false,
+    this.readOnly = false, 
     this.suffixIcon,
     this.onChanged,
     this.keyboardType,
@@ -30,8 +31,9 @@ class CustomTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         obscureText: obscureText,
+        readOnly: readOnly,
         onChanged: onChanged,
-                  keyboardType: keyboardType, 
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
@@ -43,3 +45,4 @@ class CustomTextField extends StatelessWidget {
     );
   }
 }
+
