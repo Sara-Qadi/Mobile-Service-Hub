@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
+
+import '../controllers_sara/verify_code_controller.dart';
+import '../models_sara/verify_code_model.dart';
+import '../views_sara/verify_code_form.dart';
+
 
 class VerifyCodeScreen extends StatefulWidget {
   final String contact;
@@ -19,45 +23,18 @@ class VerifyCodeScreen extends StatefulWidget {
 }
 
 class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
-final List<TextEditingController> _controllers =
-    List.generate(6, (_) => TextEditingController());
-final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  late final VerifyCodeModel _model;
+  late final VerifyCodeController _controller;
 
+  final List<TextEditingController> _controllers =
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  bool get _isCodeComplete =>
-      _controllers.every((controller) => controller.text.isNotEmpty);
-
-  void _verifyCode() async {
-    final enteredCode = _controllers.map((c) => c.text).join();
-
-    try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
-        smsCode: enteredCode,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(contact: widget.contact),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Verification failed: ${e.toString()}')),
-      );
-    }
-  }
-
-  void _onDigitEntered(int index, String value) {
-    if (value.length == 1 && index < 5) {
-      _focusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    _model = VerifyCodeModel();
+    _controller = VerifyCodeController(_model);
   }
 
   @override
@@ -71,24 +48,33 @@ final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
     super.dispose();
   }
 
-  Widget _buildDigitField(int index) {
-    return SizedBox(
-      width: 50,
-      child: TextField(
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        decoration: InputDecoration(
-          counterText: '',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+  void _onDigitEntered(int index, String value) {
+    _controller.updateDigit(index, value);
+
+    if (value.length == 1 && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+    setState(() {});
+  }
+
+  void _verifyCode() {
+    _controller.verifyCode(
+      verificationId: widget.verificationId,
+      onSuccess: () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResetPasswordScreen(contact: widget.contact),
           ),
-        ),
-        onChanged: (value) => _onDigitEntered(index, value),
-      ),
+        );
+      },
+      onError: (message) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification failed: $message')),
+        );
+      },
     );
   }
 
@@ -98,54 +84,57 @@ final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
       appBar: AppBar(
         title: Text("Verify ${widget.method.toUpperCase()}"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 100),
-            Text(
-              'Enter the code sent to your ${widget.method}:',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.contact,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 100),
+              Text(
+                'Enter the code sent to your ${widget.method}:',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
               ),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-     children: List.generate(6, _buildDigitField),
-
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _isCodeComplete ? _verifyCode : null,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 32,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+              const SizedBox(height: 8),
+              Text(
+                widget.contact,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              child: const Text('Verify', style: TextStyle(fontSize: 18)),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.red),
+              const SizedBox(height: 40),
+              VerifyCodeForm(
+                controllers: _controllers,
+                focusNodes: _focusNodes,
+                onDigitEntered: _onDigitEntered,
               ),
-            ),
-          ],
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: _controller.isCodeComplete ? _verifyCode : null,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 32,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text('Verify', style: TextStyle(fontSize: 18)),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
