@@ -68,6 +68,12 @@ class _CustomerNotificationsScreenState extends State<CustomerNotificationsScree
                     return NotificationItemWidget(
                       notification: notification,
                       onTap: (id) async {
+                          try {
+    await _notificationService.markAsRead(id);
+    print("Marked as read: $id");
+  } catch (e) {
+    print("Failed to mark as read: $e");
+  }
                         await _notificationService.markAsRead(id);
 
                         if (notification.type == NotificationType.booking && notification.bookingData != null) {

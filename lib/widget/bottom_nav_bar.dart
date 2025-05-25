@@ -58,19 +58,21 @@ class _BottomNavBarState extends State<BottomNavBar> {
         return FirebaseFirestore.instance
             .collection('notifications')
             .where('providerId', isEqualTo: _userId)
+            .where('receiver', isEqualTo: 'Provider')
             .where('isRead', isEqualTo: false)
             .snapshots();
       } else if (_userRole == 'Customer') {
         return FirebaseFirestore.instance
             .collection('notifications')
-            .where('clientId', isEqualTo: _userId)
-            .where('isRead', isEqualTo: false)
+  .where('clientId', isEqualTo: _userId)
+     .where('notificationFor', isEqualTo: "client")
+.where('isRead', isEqualTo: false)
+
             .snapshots();
       } else if (_userRole == 'Admin') {
         return FirebaseFirestore.instance
             .collection('notifications')
-            .where('recipientRole', isEqualTo: 'Admin') 
-            .where('isRead', isEqualTo: false)
+            .where('status', isEqualTo: "unread")
             .snapshots();
       } else {
         return const Stream.empty();
