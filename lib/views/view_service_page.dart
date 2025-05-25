@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../modelRaghad/rating.dart';
 import '../repository/view_rating_repository.dart';
 import '../screen/Bookingform.dart';
@@ -18,14 +19,18 @@ class ViewServicePage extends StatefulWidget {
 
 class _ViewServicePageState extends State<ViewServicePage> {
   late Map<String, dynamic> service;
-  final viewRatingRepository _ratingRepository = viewRatingRepository();
+  late viewRatingRepository _ratingRepository;
 
   @override
   void initState() {
     super.initState();
     service = Map<String, dynamic>.from(widget.service);
     service['ratings'] = [];
-    _loadRatings();
+
+    Future.microtask(() {
+      _ratingRepository = Provider.of<viewRatingRepository>(context, listen: false);
+      _loadRatings();
+    });
   }
 
   Future<void> _loadRatings() async {
@@ -36,7 +41,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
   }
 
   Future<void> _saveRatings() async {
-    await _ratingRepository.saveRatings(service['name'], List<Map<String, dynamic>>.from(service['ratings']));
+    await _ratingRepository.saveRatings(service['id'], List<Map<String, dynamic>>.from(service['ratings']));
   }
 
   void _addRating(Rating newRating) {
@@ -52,6 +57,8 @@ class _ViewServicePageState extends State<ViewServicePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width >= 600;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -80,138 +87,266 @@ class _ViewServicePageState extends State<ViewServicePage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Text(
-                        service['name'] ?? '',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal[700],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Hero(
-                        tag: 'service-image-${service['name']}',
-                        child: ClipOval(
-                          child: SizedBox(
-                            width: 160,
-                            height: 160,
-                            child: ServiceImageWidget(service: service),
+          if (isWideScreen) {
+            // تصميم أفقي للويب والشاشات الواسعة
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                         const SizedBox(height: 40), 
+                         
+                        Text(
+                          service['name'] ?? '',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal[700],
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.center,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.calendar_today, size: 14),
-                        label: const Text(
-                          'Book Now',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors.teal,
-                          minimumSize: const Size(80, 30),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: const BorderSide(color: Colors.white, width: 1.5),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BookingForm(
-                                service: {
-                                  'id': service['id'],
-                                  'name': service['name'],
-                                  'user': service['user'],
-                                  'userId': service['userId'],
-                                },
-                              ),
+                        const SizedBox(height: 20),
+                        Hero(
+                          tag: 'service-image-${service['name']}',
+                          child: ClipOval(
+                            child: SizedBox(
+                              width: 200,
+                              height: 200,
+                              child: ServiceImageWidget(service: service),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Service details
-                    DetailCardWidget(title: 'Service Provider', content: service['user'] ?? 'N/A'),
-                    DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'), 
-                    DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
-                    DetailCardWidget(title: 'Price', content: '${service['price'] ?? 'N/A'} \$'),
-
-                    const SizedBox(height: 16),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.star, size: 16),
-                        label: const Text(
-                          'Add Rating',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors.teal,
-                          minimumSize: const Size(100, 35),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: const BorderSide(color: Colors.white, width: 2),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RatingPage(
-                                service: service,
-                                onRatingSubmitted: (ratingMap) {
-                                  final rating = Rating.fromMap(ratingMap);
-                                  _addRating(rating);
-                                },
-                              ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.star, size: 18),
+                          label: const Text(
+                            'Add Rating',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            primary: Colors.teal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              side: const BorderSide(color: Colors.white, width: 2),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    if (service['ratings'].isNotEmpty) ...[
-                      Text(
-                        'Reviews:',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal[700],
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RatingPage(
+                                  service: service,
+                                  onRatingSubmitted: (ratingMap) {
+                                    final rating = Rating.fromMap(ratingMap);
+                                    _addRating(rating);
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...service['ratings'].map<Widget>((rating) {
-                        final r = Rating.fromMap(rating);
-                        return RatingCardWidget(rating: r);
-                      }).toList(),
-                    ],
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.calendar_today, size: 18),
+                          label: const Text(
+                            'Book Now',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            primary: Colors.teal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              side: const BorderSide(color: Colors.white, width: 2),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookingForm(
+                                  service: {
+                                    'id': service['id'],
+                                    'name': service['name'],
+                                    'user': service['user'],
+                                    'userId': service['userId'],
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 32),
+
+                  // الجهة اليمنى: تفاصيل الخدمة والتقييمات
+                  Flexible(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DetailCardWidget(title: 'Service Provider', content: service['user'] ?? 'N/A'),
+                        DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'),
+                        DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
+                        DetailCardWidget(title: 'Price', content: '${service['price'] ?? 'N/A'} \$'),
+                        const SizedBox(height: 24),
+
+                        if (service['ratings'].isNotEmpty) ...[
+                          Text(
+                            'Reviews:',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal[700],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...service['ratings'].map<Widget>((rating) {
+                            final r = Rating.fromMap(rating);
+                            return RatingCardWidget(rating: r);
+                          }).toList(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-          );
+            );
+          } else {
+            // تصميم عمودي للهواتف والشاشات الصغيرة
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  
+                  Center(
+                    child: Text(
+                      service['name'] ?? '',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal[700],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Hero(
+                      tag: 'service-image-${service['name']}',
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 160,
+                          height: 160,
+                          child: ServiceImageWidget(service: service),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.center,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 14),
+                      label: const Text(
+                        'Book Now',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.teal,
+                        minimumSize: const Size(80, 30),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: const BorderSide(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingForm(
+                              service: {
+                                'id': service['id'],
+                                'name': service['name'],
+                                'user': service['user'],
+                                'userId': service['userId'],
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DetailCardWidget(title: 'Service Provider', content: service['user'] ?? 'N/A'),
+                  DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'),
+                  DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
+                  DetailCardWidget(title: 'Price', content: '${service['price'] ?? 'N/A'} \$'),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.star, size: 16),
+                      label: const Text(
+                        'Add Rating',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.teal,
+                        minimumSize: const Size(100, 35),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          side: const BorderSide(color: Colors.white, width: 2),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RatingPage(
+                              service: service,
+                              onRatingSubmitted: (ratingMap) {
+                                final rating = Rating.fromMap(ratingMap);
+                                _addRating(rating);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (service['ratings'].isNotEmpty) ...[
+                    Text(
+                      'Reviews:',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal[700],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...service['ratings'].map<Widget>((rating) {
+                      final r = Rating.fromMap(rating);
+                      return RatingCardWidget(rating: r);
+                    }).toList(),
+                  ],
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          }
         },
       ),
     );
