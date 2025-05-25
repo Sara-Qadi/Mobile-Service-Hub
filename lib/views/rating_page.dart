@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../repository/RatingRepository.dart';
 import '../theme/app_colors.dart';
 import '../widgets/comment_field_widget.dart';
@@ -21,13 +22,13 @@ class RatingPage extends StatefulWidget {
 }
 
 class _RatingPageState extends State<RatingPage> {
-  final RatingRepository _ratingRepository = RatingRepository(); // ✅ استخدم الريبو
+  final RatingRepository _ratingRepository = RatingRepository();
   double _rating = 0;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _commentController = TextEditingController();
 
   void _handleSubmitRating() {
-    _ratingRepository.submitRating(
+    Provider.of<RatingRepository>(context, listen: false).submitRating(
       context: context,
       service: widget.service,
       name: _nameController.text.trim(),
@@ -93,7 +94,7 @@ class _RatingPageState extends State<RatingPage> {
                     SubmitButtonWidget(onPressed: _handleSubmitRating),
                     SizedBox(height: 20),
                     StreamBuilder(
-                      stream: _ratingRepository.getServiceRatings(serviceId), // ✅ من الريبو
+                      stream: _ratingRepository.getServiceRatings(serviceId),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return CircularProgressIndicator();

@@ -28,7 +28,6 @@ class _ServicesPageState extends State<ServicesPage> {
     _searchController.addListener(() => setState(() {}));
   }
 
- 
   void _loadServices() {
     _serviceRepository.fetchServices().then((loadedServices) {
       setState(() {
@@ -37,7 +36,6 @@ class _ServicesPageState extends State<ServicesPage> {
     });
   }
 
- 
   void _deleteService(Map<String, dynamic> service) {
     _serviceRepository.deleteService(service['id']).then((_) {
       setState(() {
@@ -46,7 +44,6 @@ class _ServicesPageState extends State<ServicesPage> {
     });
   }
 
- 
   void _updateService(Map<String, dynamic> service) async {
     final updatedService = await Navigator.push(
       context,
@@ -85,60 +82,140 @@ class _ServicesPageState extends State<ServicesPage> {
         children: [
           SearchBarWidget(controller: _searchController),
           Expanded(
-            child: GridView.builder(
-              padding: EdgeInsets.all(12),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: filtered.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return AddServiceCard(onTap: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AddServicePage()),
-                    );
-                    if (result != null && result is String) {
-                      final newService = await _serviceRepository.getServiceById(result);
-                      if (newService != null) {
-                        setState(() {
-                          services.add(newService);
-                        });
-                      }
-                    }
-                  });
-                }
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                bool isWideScreen = constraints.maxWidth > 600;
 
-                final service = filtered[index - 1];
-                return ServiceCard(
-                  service: service,
-                  onEdit: () => _updateService(service),
-                  onDelete: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: Text("Delete Service"),
-                        content: Text("Are you sure you want to delete this service?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _deleteService(service);
-                            },
-                            child: Text("Delete", style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
+                if (isWideScreen) {
+                  // تخطيط عريض للويب
+                  return Row(
+                    children: [
+                      // كارد الإضافة على اليسار
+                      Container(
+                        width: 300,
+                        padding: EdgeInsets.all(12),
+                        child: AddServiceCard(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => AddServicePage()),
+                            );
+                            if (result != null && result is String) {
+                              final newService = await _serviceRepository.getServiceById(result);
+                              if (newService != null) {
+                                setState(() {
+                                  services.add(newService);
+                                });
+                              }
+                            }
+                          },
+                        ),
                       ),
-                    );
-                  },
-                );
+                      // كروت الخدمات على اليمين
+                      Expanded(
+                        child: GridView.builder(
+                          padding: EdgeInsets.all(12),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 0.75,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final service = filtered[index];
+                            return ServiceCard(
+                              service: service,
+                              onEdit: () => _updateService(service),
+                              onDelete: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text("Delete Service"),
+                                    content: Text("Are you sure you want to delete this service?"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text("Cancel"),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          _deleteService(service);
+                                        },
+                                        child: Text("Delete", style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  // تخطيط الهاتف العادي
+                  return GridView.builder(
+                    padding: EdgeInsets.all(12),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: filtered.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return AddServiceCard(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => AddServicePage()),
+                            );
+                            if (result != null && result is String) {
+                              final newService = await _serviceRepository.getServiceById(result);
+                              if (newService != null) {
+                                setState(() {
+                                  services.add(newService);
+                                });
+                              }
+                            }
+                          },
+                        );
+                      }
+
+                      final service = filtered[index - 1];
+                      return ServiceCard(
+                        service: service,
+                        onEdit: () => _updateService(service),
+                        onDelete: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text("Delete Service"),
+                              content: Text("Are you sure you want to delete this service?"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text("Cancel"),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _deleteService(service);
+                                  },
+                                  child: Text("Delete", style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                }
               },
             ),
           ),
@@ -179,4 +256,4 @@ class _ServicesPageState extends State<ServicesPage> {
       bottomNavigationBar: const BottomNavBar(currentIndex: 0),
     );
   }
-}
+} 

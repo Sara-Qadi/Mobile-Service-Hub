@@ -24,7 +24,7 @@ class _ServicesProviderPageState extends State<ServicesProviderPage> {
     super.initState();
     filteredServices = widget.services;
     _searchController.addListener(_handleSearch);
-    _loadImages(); // Calls future from repo
+    _loadImages(); 
   }
 
   void _handleSearch() {
