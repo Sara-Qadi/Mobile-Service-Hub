@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:mobile_service_hub/routes/appRoutes.dart';
+import 'package:provider/provider.dart';
+import 'controllers_sara/create_account_controller.dart';
 import 'package:mobile_service_hub/screens/login.dart';
 import 'package:mobile_service_hub/screens/forgot_password.dart';
 import 'package:mobile_service_hub/screens/customer_profile.dart';
@@ -7,19 +11,26 @@ import 'package:mobile_service_hub/screens/service_p_profile.dart';
 import 'screen/Bookingform.dart';
 import 'screen/ProviderClientsTableView.dart';
 import 'views/services_page.dart';
-import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'theme/app_colors.dart';
 import 'widget/bottom_nav_bar.dart';
-import 'package:firebase_core/firebase_core.dart';
-void main() async{
-   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
 
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CreateAccountController()),
+      ],
+      child: const MyApp(),
+    ),
   );
-  debugPrintRebuildDirtyWidgets = false;
-  runApp(const MyApp());
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -56,23 +67,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginScreen(),
+      home: const LoginScreen(),
+
+      routes: {
+  
+        ...AppRoutes.getRoutes(),
+      },
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
