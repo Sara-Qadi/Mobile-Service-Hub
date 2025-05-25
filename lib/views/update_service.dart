@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../repository/update-service_repository.dart';
 import '../widgets/text_field_widget.dart';
 import '../widgets/update_button_widget.dart';
@@ -23,7 +24,7 @@ class _UpdateServicePageState extends State<UpdateService> {
   final phoneController = TextEditingController();
 
   Uint8List? _imageBytes;
-  final _repository = updateServiceRepository();
+late updateServiceRepository _repository;
 
   static const double paddingAll = 16.0;
   static const double spacingSmall = 16.0;
@@ -31,16 +32,21 @@ class _UpdateServicePageState extends State<UpdateService> {
   static const double spacingLarge = 24.0;
 
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
+
+  Future.microtask(() {
+    _repository = Provider.of<updateServiceRepository>(context, listen: false);
+
     final service = widget.service;
     nameController.text = service['name'];
     detailsController.text = service['details'];
     priceController.text = service['price'];
     userController.text = service['user'];
-    phoneController.text = service['phone'] ?? ''; 
+    phoneController.text = service['phone'] ?? '';
     _imageBytes = base64Decode(service['imageBytes']);
-  }
+  });
+}
 
   Future<void> _pickImage() async {
     try {
