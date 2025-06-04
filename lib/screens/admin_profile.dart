@@ -1,42 +1,40 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile_service_hub/screens/create_account.dart';
 import 'package:mobile_service_hub/screens/reset_password.dart';
-import '../controllers_sara/customer_profile_controller.dart';
+import '../controllers_sara/admin_controller.dart';
 import '../models_sara/customer_profile_model.dart';
-import '../views_sara/customer_profile_form.dart';
+import '../views_sara/admin_profile_form.dart';
 import '../widget/bottom_nav_bar.dart';
 
 
-class CustomerProfilePage extends StatefulWidget {
-  const CustomerProfilePage({Key? key}) : super(key: key);
+class AdminProfilePage extends StatefulWidget {
+  const AdminProfilePage({Key? key}) : super(key: key);
 
   @override
-  State<CustomerProfilePage> createState() => _CustomerProfileScreenState();
+  State<AdminProfilePage> createState() => _AdminProfileScreenState();
 }
 
-class _CustomerProfileScreenState extends State<CustomerProfilePage> {
-  final CustomerProfileController _controller = CustomerProfileController();
-
-  CustomerProfile? _customer;
+class _AdminProfileScreenState extends State<AdminProfilePage> {
+  final AdminProfileController _controller = AdminProfileController();
+  CustomerProfile? _admin;
   Uint8List? _profileImageBytes;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomerProfile();
+    _loadAdminProfile();
   }
 
-  Future<void> _loadCustomerProfile() async {
-    final profile = await _controller.fetchCustomerProfile();
+  Future<void> _loadAdminProfile() async {
+    final profile = await _controller.fetchAdminProfile();
     if (mounted) {
       setState(() {
-        _customer = profile;
+        _admin = profile;
         if (profile?.profileImageBase64 != null) {
-          _profileImageBytes = Uint8List.fromList(
-            List<int>.from(profile!.profileImageBase64!.codeUnits),
-          );
+          _profileImageBytes = Uint8List.fromList(List<int>.from(profile!.profileImageBase64!.codeUnits));
         }
         _isLoading = false;
       });
@@ -64,7 +62,7 @@ class _CustomerProfileScreenState extends State<CustomerProfilePage> {
 
     if (result != null && result != currentValue) {
       await _controller.updateField(field, result);
-      _loadCustomerProfile();
+      _loadAdminProfile();
     }
   }
 
@@ -79,12 +77,12 @@ class _CustomerProfileScreenState extends State<CustomerProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Customer Profile"),
+        title: const Text("Admin Profile"),
         centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _customer == null
+          : _admin == null
               ? const Center(child: Text("Profile not found."))
               : ListView(
   padding: const EdgeInsets.all(20),
@@ -98,30 +96,38 @@ class _CustomerProfileScreenState extends State<CustomerProfilePage> {
     buildProfileTile(
       icon: Icons.person,
       title: 'First Name',
-      value: _customer!.firstName,
-      onTap: () => _showEditDialog('First Name', 'firstName', _customer!.firstName),
+      value: _admin!.firstName,
+      onTap: () => _showEditDialog('First Name', 'firstName', _admin!.firstName),
     ),
     buildProfileTile(
       icon: Icons.person_outline,
       title: 'Last Name',
-      value: _customer!.lastName,
-      onTap: () => _showEditDialog('Last Name', 'lastName', _customer!.lastName),
+      value: _admin!.lastName,
+      onTap: () => _showEditDialog('Last Name', 'lastName', _admin!.lastName),
     ),
     buildProfileTile(
       icon: Icons.phone,
       title: 'Phone',
-      value: _customer!.phone,
-      onTap: () => _showEditDialog('Phone', 'phone', _customer!.phone),
+      value: _admin!.phone,
+      onTap: () => _showEditDialog('Phone', 'phone', _admin!.phone),
     ),
   buildProfileTile(
   icon: Icons.location_on,
   title: 'Location',
-  value: _customer!.location,
-  onTap: () => _showEditDialog('Location', 'location', _customer!.location),
+  value: _admin!.location,
+  onTap: () => _showEditDialog('Location', 'location', _admin!.location),
 ),
 
-    const SizedBox(height: 24),
+           const SizedBox(height: 24),
+                    buildActionTile(
+                      icon: Icons.person_add,
+                      title: 'Create Admin Account',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) =>  CreateAccountScreen(role: 'Admin',),
+                      )),
+                    ),
 
+    const SizedBox(height: 24),
     buildActionTile(
       icon: Icons.lock_reset,
       title: 'Reset Password',

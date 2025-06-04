@@ -8,8 +8,10 @@ enum NotificationType {
   info, 
   clientRequest,
   approval,
-  booking_rejected,  
+  booking_rejected,
+  service_report, 
 }
+
 
 class NotificationModel {
   final String id;
@@ -111,6 +113,9 @@ class NotificationModel {
       case 'booking_rejected':
         notificationType = NotificationType.booking_rejected;
         break;
+       case 'service_report':
+    notificationType = NotificationType.service_report; 
+    break;
     }
 
     String formattedTime = 'Just now';
@@ -209,6 +214,9 @@ class NotificationModel {
       case NotificationType.booking_rejected:
         typeString = 'booking_rejected';
         break;
+        case NotificationType.service_report:
+    typeString = 'service_report'; 
+    break;
     }
 
     return {

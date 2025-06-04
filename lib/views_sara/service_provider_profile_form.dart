@@ -89,7 +89,7 @@ class ServiceProviderProfileForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Profile")),
+      appBar: AppBar(title: const Text("Provider Profile")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
