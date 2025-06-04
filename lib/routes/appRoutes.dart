@@ -31,7 +31,7 @@ static Map<String, WidgetBuilder> getRoutes() {
     forgotPassword: (context) => ForgotPasswordScreen(),
     addServicePage: (context) => AddServicePage(),
     viewServicePage: (context) => ViewServicePage(service: {}),
-    roleSelection: (context) => const RoleSelectionScreen(), // Add this line
+    roleSelection: (context) => const RoleSelectionScreen(), 
   };
 }
 
