@@ -21,4 +21,10 @@ class viewRatingRepository {
     final encoded = jsonEncode(ratings);
     await prefs.setString(key, encoded);
   }
+  
+  Future<void> saveSingleRating(String serviceId, Map<String, dynamic> newRating) async {
+    final ratings = await loadRatings(serviceId);
+    ratings.add(newRating);
+    await saveRatings(serviceId, ratings);
+  }
 }

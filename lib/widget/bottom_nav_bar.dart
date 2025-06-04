@@ -185,7 +185,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       context,
                       MaterialPageRoute(builder: (context) => ServiceProviderProfile()),
                     );
-                  } else if (_userRole == 'customer'){
+                  } else if (_userRole == 'Customer'){
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => CustomerProfilePage()),
