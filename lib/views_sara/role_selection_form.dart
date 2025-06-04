@@ -61,13 +61,7 @@ class RoleSelectionForm extends StatelessWidget {
           role: "Service Provider",
           color: AppColors.secondary,
         ),
-        const SizedBox(height: 20),
-        _buildRoleButton(
-          context: context,
-          label: "Admin",
-          role: "Admin",
-          color: AppColors.accent,
-        ),
+   
       ],
     );
   }

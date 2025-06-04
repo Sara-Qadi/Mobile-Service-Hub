@@ -7,7 +7,6 @@ class updateServiceRepository {
   final CollectionReference _collection = FirebaseFirestore.instance.collection('services');
   final CollectionReference _ratingCollection = FirebaseFirestore.instance.collection('ratings');
 
-  // جلب كل الخدمات
   Future<List<Map<String, dynamic>>> fetchServices() async {
     final snapshot = await _collection.get();
     return snapshot.docs.map((doc) {
@@ -17,7 +16,6 @@ class updateServiceRepository {
     }).toList();
   }
 
-  // حذف الخدمة مع حذف تقييماتها المرتبطة
   Future<void> deleteService(String serviceId) async {
     final ratingDocs = await _ratingCollection.where('serviceId', isEqualTo: serviceId).get();
     for (var doc in ratingDocs.docs) {
@@ -26,12 +24,10 @@ class updateServiceRepository {
     await _collection.doc(serviceId).delete();
   }
 
-  // تحديث خدمة
   Future<void> updateService(String serviceId, Map<String, dynamic> updatedData) async {
     await _collection.doc(serviceId).update(updatedData);
   }
 
-  // جلب خدمة واحدة بحسب id
   Future<Map<String, dynamic>?> getServiceById(String serviceId) async {
     final doc = await _collection.doc(serviceId).get();
     if (doc.exists) {
@@ -42,13 +38,11 @@ class updateServiceRepository {
     return null;
   }
 
-  // إضافة خدمة جديدة
   Future<String> addService(Map<String, dynamic> newService) async {
     final docRef = await _collection.add(newService);
     return docRef.id;
   }
 
-  // اختيار صورة من المعرض
   Future<Uint8List?> pickImage() async {
     try {
       final picker = ImagePicker();

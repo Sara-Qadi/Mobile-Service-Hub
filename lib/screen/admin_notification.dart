@@ -15,6 +15,22 @@ class AdminNotificationsScreen extends StatefulWidget {
 
 class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
  List<NotificationModel> notifications = [];
+ void _showReportDetailsDialog(BuildContext context, NotificationModel notification) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Service Report'),
+      content: Text(notification.message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Close'),
+        )
+      ],
+    ),
+  );
+}
+
 
   @override
   void initState() {
@@ -34,27 +50,38 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           final timestamp = data['timestamp'] as Timestamp?;
           final timeAgo = _getTimeAgo(timestamp?.toDate());
 
-          return NotificationModel(
-            id: doc.id,
-            title: data['type'] == 'provider_signup'
-                ? 'New Provider Request'
-                : 'Notification',
-            message: '${data['providerName'] ?? 'A provider'} has signed up for approval',
-            time: timeAgo,
-            isRead: data['status'] == 'read',
-            type: NotificationType.provider,
-            providerData: {
-              'name': data['providerName'] ?? '',
-              'providerId': data['providerId'] ?? '',
-              'email': '',
-              'phone': '',
-              'specialty': '',
-              'experience': '',
-              'location': '',
-              'rating': '',
-              'availability': '',
-            },
-          );
+return NotificationModel(
+  id: doc.id,
+  title: data['type'] == 'provider_signup'
+      ? 'New Provider Request'
+      : data['type'] == 'service_report'
+          ? 'Service Reported'
+          : 'Notification',
+  message: data['type'] == 'provider_signup'
+      ? '${data['providerName'] ?? 'A provider'} has signed up for approval'
+      : data['type'] == 'service_report'
+          ? 'Service "${data['serviceName'] ?? 'Unknown'}" was reported for ${data['reason'] ?? 'unknown reason'}'
+          : '',
+  time: timeAgo,
+  isRead: data['status'] == 'read',
+  type: data['type'] == 'provider_signup'
+      ? NotificationType.provider
+      : NotificationType.service_report,
+  providerData: data['type'] == 'provider_signup'
+      ? {
+          'name': data['providerName'] ?? '',
+          'providerId': data['providerId'] ?? '',
+          'email': '',
+          'phone': '',
+          'specialty': '',
+          'experience': '',
+          'location': '',
+          'rating': '',
+          'availability': '',
+        }
+      : null,
+);
+
         }).toList();
       });
     });
@@ -123,17 +150,20 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                 final notification = notifications[index];
                 return NotificationItemWidget(
                   notification: notification,
-                  onTap: (id) {
-                    markAsRead(id);
-                    if (notification.type == NotificationType.provider &&
-                        notification.providerData != null) {
-                      _showProviderDetailsPopup(
-                        context,
-                        notification.providerData!,
-                        notification.id,
-                      );
-                    }
-                  },
+            onTap: (id) {
+  markAsRead(id);
+  if (notification.type == NotificationType.provider &&
+      notification.providerData != null) {
+    _showProviderDetailsPopup(
+      context,
+      notification.providerData!,
+      notification.id,
+    );
+  } else if (notification.type == NotificationType.service_report) {
+    _showReportDetailsDialog(context, notification);
+  }
+},
+
                   onDelete: deleteNotification,
                 );
               },

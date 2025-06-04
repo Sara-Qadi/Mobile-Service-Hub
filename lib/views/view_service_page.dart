@@ -148,7 +148,6 @@ class _ViewServicePageState extends State<ViewServicePage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Service details
                     DetailCardWidget(title: 'Service Provider', content: service['user'] ?? 'N/A'),
                     DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'), 
                     DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
