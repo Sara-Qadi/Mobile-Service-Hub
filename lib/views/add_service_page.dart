@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_service_hub/theme/app_colors.dart';
+import 'package:provider/provider.dart';
 import '../widgets/image_picker_widget.dart';
 import '../widgets/service_form_field.dart';
 import '../repository/add-service_repository.dart';
@@ -144,9 +145,8 @@ class _AddServicePageState extends State<AddServicePage> {
                         'imageBytes': _imageBytes != null ? base64Encode(_imageBytes!) : '',
                       };
 
-                      final repository = addServiceRepository();
-                      final serviceId = await repository.addService(newService);
-
+                      final repository = Provider.of<addServiceRepository>(context, listen: false);
+        final serviceId = await repository.addService(newService);
                       if (serviceId != null) {
                         Navigator.pop(context, serviceId);
                       }
