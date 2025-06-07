@@ -9,7 +9,15 @@ enum NotificationType {
   clientRequest,
   approval,
   booking_rejected,
+
+  bookingPendingConfirmation,
+  bookingConfirmed,
+  bookingCancelled,
+  bookingCompleted,  
+  rating, 
+
   service_report, 
+
 }
 
 
@@ -23,12 +31,15 @@ class NotificationModel {
   final Map<String, String>? providerData;
   final Map<String, String>? bookingData;
   final Map<String, String>? clientData;
+  final Map<String, String>? ratingData;
   final String? userId;
   final String? clientId;
   final String? providerId;
   final String? bookingId;
+  final String? serviceId;
   final Timestamp? createdAt;
-  final String? notificationFor;
+  final Timestamp? timeTimestamp;
+  final String? notificationFor;  
 
   NotificationModel({
     required this.id,
@@ -40,11 +51,14 @@ class NotificationModel {
     this.providerData,
     this.bookingData,
     this.clientData,
+    this.ratingData,
     this.userId,
     this.clientId,
     this.providerId,
     this.bookingId,
+    this.serviceId,
     this.createdAt,
+    this.timeTimestamp,
     this.notificationFor,
   });
 
@@ -58,11 +72,14 @@ class NotificationModel {
     Map<String, String>? providerData,
     Map<String, String>? bookingData,
     Map<String, String>? clientData,
+    Map<String, String>? ratingData,
     String? userId,
     String? clientId,
     String? providerId,
     String? bookingId,
+    String? serviceId,
     Timestamp? createdAt,
+    Timestamp? timeTimestamp,
     String? notificationFor,
   }) {
     return NotificationModel(
@@ -75,11 +92,14 @@ class NotificationModel {
       providerData: providerData ?? this.providerData,
       bookingData: bookingData ?? this.bookingData,
       clientData: clientData ?? this.clientData,
+      ratingData: ratingData ?? this.ratingData,
       userId: userId ?? this.userId,
       clientId: clientId ?? this.clientId,
       providerId: providerId ?? this.providerId,
       bookingId: bookingId ?? this.bookingId,
+      serviceId: serviceId ?? this.serviceId,
       createdAt: createdAt ?? this.createdAt,
+      timeTimestamp: timeTimestamp ?? this.timeTimestamp,
       notificationFor: notificationFor ?? this.notificationFor,
     );
   }
@@ -113,16 +133,61 @@ class NotificationModel {
       case 'booking_rejected':
         notificationType = NotificationType.booking_rejected;
         break;
+
+      case 'booking_pending_confirmation':
+        notificationType = NotificationType.bookingPendingConfirmation;
+        break;
+      case 'booking_confirmed':
+        notificationType = NotificationType.bookingConfirmed;
+        break;
+      case 'booking_cancelled':
+      case 'bookingCancelled':  
+        notificationType = NotificationType.bookingCancelled;
+        break;
+      case 'booking_completed':
+      case 'bookingCompleted':  
+        notificationType = NotificationType.bookingCompleted;
+        break;
+      case 'rating':
+        notificationType = NotificationType.rating;
+        break;
+      default:
+        notificationType = NotificationType.info;
+        break;
+
        case 'service_report':
     notificationType = NotificationType.service_report; 
     break;
+
+    }
+
+    
+    Timestamp? createdAtTimestamp;
+    Timestamp? timeTimestamp;
+    
+    if (data['createdAt'] != null) {
+      try {
+        createdAtTimestamp = data['createdAt'] as Timestamp;
+      } catch (e) {
+       
+        createdAtTimestamp = null;
+      }
+    }
+    
+    if (data['time'] != null) {
+      try {
+        timeTimestamp = data['time'] as Timestamp;
+      } catch (e) {
+        timeTimestamp = null;
+      }
     }
 
     String formattedTime = 'Just now';
-    if (data['createdAt'] != null) {
-      final timestamp = data['createdAt'] as Timestamp;
+    final timestampToUse = createdAtTimestamp ?? timeTimestamp;
+    
+    if (timestampToUse != null) {
       final now = Timestamp.now();
-      final difference = now.seconds - timestamp.seconds;
+      final difference = now.seconds - timestampToUse.seconds;
       
       if (difference < 60) {
         formattedTime = 'Just now';
@@ -143,47 +208,75 @@ class NotificationModel {
     Map<String, String>? providerData;
     Map<String, String>? bookingData;
     Map<String, String>? clientData;
+    Map<String, String>? ratingData;
     
     if (data['providerData'] != null) {
-      providerData = Map<String, String>.from(
-        (data['providerData'] as Map<String, dynamic>).map(
-          (key, value) => MapEntry(key, value.toString())
-        )
-      );
+      try {
+        providerData = Map<String, String>.from(
+          (data['providerData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(key, value?.toString() ?? '')
+          )
+        );
+      } catch (e) {
+        providerData = null;
+      }
     }
     
     if (data['bookingData'] != null) {
-      bookingData = Map<String, String>.from(
-        (data['bookingData'] as Map<String, dynamic>).map(
-          (key, value) => MapEntry(key, value.toString())
-        )
-      );
+      try {
+        bookingData = Map<String, String>.from(
+          (data['bookingData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(key, value?.toString() ?? '')
+          )
+        );
+      } catch (e) {
+        bookingData = null;
+      }
     }
     
     if (data['clientData'] != null) {
-      clientData = Map<String, String>.from(
-        (data['clientData'] as Map<String, dynamic>).map(
-          (key, value) => MapEntry(key, value.toString())
-        )
-      );
+      try {
+        clientData = Map<String, String>.from(
+          (data['clientData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(key, value?.toString() ?? '')
+          )
+        );
+      } catch (e) {
+        clientData = null;
+      }
+    }
+
+    if (data['ratingData'] != null) {
+      try {
+        ratingData = Map<String, String>.from(
+          (data['ratingData'] as Map<String, dynamic>).map(
+            (key, value) => MapEntry(key, value?.toString() ?? '')
+          )
+        );
+      } catch (e) {
+        ratingData = null;
+      }
     }
 
     return NotificationModel(
       id: doc.id,
-      title: data['title'] ?? '',
-      message: data['message'] ?? '',
+      title: data['title']?.toString() ?? '',
+      message: data['message']?.toString() ?? '',
       time: formattedTime,
-      isRead: data['isRead'] ?? false,
+      isRead: data['isRead'] == true,
       type: notificationType,
       providerData: providerData,
       bookingData: bookingData,
       clientData: clientData,
-      userId: data['userId'],
-      clientId: data['clientId'],
-      providerId: data['providerId'],
-      bookingId: data['bookingId'],
-      createdAt: data['createdAt'],
-      notificationFor: data['notificationFor'],
+      ratingData: ratingData,
+      userId: data['userId']?.toString(),
+      clientId: data['clientId']?.toString(),
+      providerId: data['providerId']?.toString(),
+      bookingId: data['bookingId']?.toString(),
+      serviceId: data['serviceId']?.toString(),
+      createdAt: createdAtTimestamp,
+      timeTimestamp: timeTimestamp,
+      notificationFor: data['notificationFor']?.toString(),
     );
   }
 
@@ -214,25 +307,122 @@ class NotificationModel {
       case NotificationType.booking_rejected:
         typeString = 'booking_rejected';
         break;
+
+      case NotificationType.bookingPendingConfirmation:
+        typeString = 'booking_pending_confirmation';
+        break;
+      case NotificationType.bookingConfirmed:
+        typeString = 'booking_confirmed';
+        break;
+      case NotificationType.bookingCancelled:
+        typeString = 'bookingCancelled';
+        break;
+      case NotificationType.bookingCompleted:
+        typeString = 'bookingCompleted';
+        break;
+      case NotificationType.rating:
+        typeString = 'rating';
+        break;
+
         case NotificationType.service_report:
     typeString = 'service_report'; 
     break;
     }
 
-    return {
+    final Map<String, dynamic> firestoreData = {
       'title': title,
       'message': message,
       'isRead': isRead,
       'type': typeString,
-      'providerData': providerData,
-      'bookingData': bookingData,
-      'clientData': clientData,
-      'userId': userId,
-      'clientId': clientId,
-      'providerId': providerId,
-      'bookingId': bookingId,
-      'createdAt': createdAt ?? Timestamp.now(),
-      'notificationFor': notificationFor,
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'time': timeTimestamp ?? FieldValue.serverTimestamp(),
     };
+
+    if (providerData != null && providerData!.isNotEmpty) {
+      firestoreData['providerData'] = providerData;
+    }
+    if (bookingData != null && bookingData!.isNotEmpty) {
+      firestoreData['bookingData'] = bookingData;
+    }
+    if (clientData != null && clientData!.isNotEmpty) {
+      firestoreData['clientData'] = clientData;
+    }
+    if (ratingData != null && ratingData!.isNotEmpty) {
+      firestoreData['ratingData'] = ratingData;
+    }
+    if (userId != null && userId!.isNotEmpty) {
+      firestoreData['userId'] = userId;
+    }
+    if (clientId != null && clientId!.isNotEmpty) {
+      firestoreData['clientId'] = clientId;
+    }
+    if (providerId != null && providerId!.isNotEmpty) {
+      firestoreData['providerId'] = providerId;
+    }
+    if (bookingId != null && bookingId!.isNotEmpty) {
+      firestoreData['bookingId'] = bookingId;
+    }
+    if (serviceId != null && serviceId!.isNotEmpty) {
+      firestoreData['serviceId'] = serviceId;
+    }
+    if (notificationFor != null && notificationFor!.isNotEmpty) {
+      firestoreData['notificationFor'] = notificationFor;
+    }
+
+    return firestoreData;
   }
+
+  bool get isForClient => 
+    clientId != null && 
+    clientId!.isNotEmpty && 
+    notificationFor != 'provider';
+
+  bool get isForProvider => 
+    providerId != null && 
+    providerId!.isNotEmpty && 
+    notificationFor != 'client';
+
+  String get notificationIcon {
+    switch (type) {
+      case NotificationType.booking:
+      case NotificationType.bookingConfirmed:
+      case NotificationType.bookingPendingConfirmation:
+        return '📅';
+      case NotificationType.bookingCancelled:
+        return '❌';
+      case NotificationType.bookingCompleted:
+        return '✅';
+      case NotificationType.clientRequest:
+        return '👤';
+      case NotificationType.rating:
+        return '⭐';
+      case NotificationType.approval:
+        return '✔️';
+      case NotificationType.booking_rejected:
+        return '❌';
+      case NotificationType.reminder:
+        return '🔔';
+      case NotificationType.promotion:
+        return '🎉';
+      case NotificationType.provider:
+        return '🏪';
+      case NotificationType.info:
+      default:
+        return 'ℹ️';
+    }
+  }
+
+  @override
+  String toString() {
+    return 'NotificationModel(id: $id, title: $title, type: $type, clientId: $clientId, providerId: $providerId, notificationFor: $notificationFor)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is NotificationModel && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+
+import 'package:mobile_service_hub/views/booking_form_view.dart';
+import 'package:provider/provider.dart';
+
 import '../modelRaghad/rating.dart';
 import '../repository/view_rating_repository.dart';
-import '../screen/Bookingform.dart';
 import '../widgets/detail_card_widget.dart';
 import '../widgets/rating_card_widget.dart';
 import '../widgets/service_image_widget.dart';
@@ -80,6 +83,29 @@ class _ViewServicePageState extends State<ViewServicePage> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
+
+          if (isWideScreen) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                         const SizedBox(height: 40), 
+                         
+                        Text(
+                          service['name'] ?? '',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal[700],
+                          ),
+                          textAlign: TextAlign.center,
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: ConstrainedBox(
@@ -128,6 +154,23 @@ class _ViewServicePageState extends State<ViewServicePage> {
                             borderRadius: BorderRadius.circular(10),
                             side: const BorderSide(color: Colors.white, width: 1.5),
                           ),
+
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookingFormView(
+                                  service: {
+                                    'id': service['id'],
+                                    'name': service['name'],
+                                    'user': service['user'],
+                                    'userId': service['userId'],
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+
                         ),
                         onPressed: () {
                           Navigator.push(
@@ -152,6 +195,100 @@ class _ViewServicePageState extends State<ViewServicePage> {
                     DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'), 
                     DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
                     DetailCardWidget(title: 'Price', content: '${service['price'] ?? 'N/A'} \$'),
+
+
+                  Flexible(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DetailCardWidget(title: 'Service Provider', content: service['user'] ?? 'N/A'),
+                        DetailCardWidget(title: 'Phone Number', content: service['phone'] ?? 'N/A'),
+                        DetailCardWidget(title: 'Details', content: service['details'] ?? 'N/A'),
+                        DetailCardWidget(title: 'Price', content: '${service['price'] ?? 'N/A'} \$'),
+                        const SizedBox(height: 24),
+
+                        if (service['ratings'].isNotEmpty) ...[
+                          Text(
+                            'Reviews:',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal[700],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...service['ratings'].map<Widget>((rating) {
+                            final r = Rating.fromMap(rating);
+                            return RatingCardWidget(rating: r);
+                          }).toList(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  
+                  Center(
+                    child: Text(
+                      service['name'] ?? '',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal[700],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Hero(
+                      tag: 'service-image-${service['name']}',
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 160,
+                          height: 160,
+                          child: ServiceImageWidget(service: service),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.center,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.calendar_today, size: 14),
+                      label: const Text(
+                        'Book Now',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.teal,
+                        minimumSize: const Size(80, 30),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: const BorderSide(color: Colors.white, width: 1.5),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookingFormView(
+                              service: {
+                                'id': service['id'],
+                                'name': service['name'],
+                                'user': service['user'],
+                                'userId': service['userId'],
+                              },
+                            ),
 
                     const SizedBox(height: 16),
 
