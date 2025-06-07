@@ -1,94 +1,82 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
 
-// class BookingModel {
-//   final String id;
-//   final String clientId;
-//   final String providerId;
-//   final String serviceId;
-//   final Timestamp date;
-//   final String location;
-//   final String status;
-//   final Map<String, dynamic> payment;
-//   final String notes;
-//   final Timestamp createdAt;
-  
-//   String? clientName;
-//   String? providerName;
-//   String? serviceName;
+class BookingModel {
+  final String id;
+  final String name;
+  final String time;
+  final String service;
+  final String date;
+  final String location;
+  final String provider;
+  final String providerId;
+  final String serviceId;
+  final bool isCurrentBooking;
 
-//   BookingModel({
-//     required this.id,
-//     required this.clientId,
-//     required this.providerId,
-//     required this.serviceId,
-//     required this.date,
-//     required this.location,
-//     required this.status,
-//     required this.payment,
-//     required this.notes,
-//     required this.createdAt,
-//     this.clientName,
-//     this.providerName,
-//     this.serviceName,
-//   });
+  BookingModel({
+    required this.id,
+    required this.name,
+    required this.time,
+    required this.service,
+    required this.date,
+    required this.location,
+    required this.provider,
+    required this.providerId,
+    required this.serviceId,
+    required this.isCurrentBooking,
+  });
 
-//   factory BookingModel.fromFirestore(DocumentSnapshot doc) {
-//     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-    
-//     return BookingModel(
-//       id: doc.id,
-//       clientId: data['clientId'] ?? '',
-//       providerId: data['providerId'] ?? '',
-//       serviceId: data['serviceId'] ?? '',
-//       date: data['date'] ?? Timestamp.now(),
-//       location: data['location'] ?? '',
-//       status: data['status'] ?? 'pending',
-//       payment: data['payment'] ?? {'amount': 0, 'method': '', 'status': ''},
-//       notes: data['notes'] ?? '',
-//       createdAt: data['createdAt'] ?? Timestamp.now(),
-//     );
-//   }
+  factory BookingModel.fromMap(Map<String, String> map) {
+    return BookingModel(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      time: map['time'] ?? '',
+      service: map['service'] ?? '',
+      date: map['date'] ?? '',
+      location: map['location'] ?? '',
+      provider: map['provider'] ?? '',
+      providerId: map['providerId'] ?? '',
+      serviceId: map['serviceId'] ?? '',
+      isCurrentBooking: map['isCurrentBooking'] == 'true',
+    );
+  }
 
-//   Map<String, dynamic> toFirestore() {
-//     return {
-//       'clientId': clientId,
-//       'providerId': providerId,
-//       'serviceId': serviceId,
-//       'date': date,
-//       'location': location,
-//       'status': status,
-//       'payment': payment,
-//       'notes': notes,
-//       'createdAt': createdAt,
-//     };
-//   }
+  Map<String, String> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'time': time,
+      'service': service,
+      'date': date,
+      'location': location,
+      'provider': provider,
+      'providerId': providerId,
+      'serviceId': serviceId,
+      'isCurrentBooking': isCurrentBooking ? 'true' : 'false',
+    };
+  }
 
-//   String getFormattedDate() {
-//     DateTime dateTime = date.toDate();
-//     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-//   }
-
-//   String getFormattedTime() {
-//     DateTime dateTime = date.toDate();
-//     String hour = dateTime.hour.toString().padLeft(2, '0');
-//     String minute = dateTime.minute.toString().padLeft(2, '0');
-//     return '$hour:$minute';
-//   }
-
-//   Map<String, String> toBookingData() {
-//     return {
-//       'id': id,
-//       'name': clientName ?? 'Client: $clientId',
-//       'provider': providerName ?? 'Provider: $providerId',
-//       'service': serviceName ?? 'Service: $serviceId',
-//       'date': getFormattedDate(),
-//       'time': getFormattedTime(),
-//       'location': location,
-//       'status': status,
-//       'amount': payment['amount'].toString(),
-//       'paymentMethod': payment['method'],
-//       'paymentStatus': payment['status'],
-//       'notes': notes,
-//     };
-//   }
-// }
+  BookingModel copyWith({
+    String? id,
+    String? name,
+    String? time,
+    String? service,
+    String? date,
+    String? location,
+    String? provider,
+    String? providerId,
+    String? serviceId,
+    bool? isCurrentBooking,
+  }) {
+    return BookingModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      time: time ?? this.time,
+      service: service ?? this.service,
+      date: date ?? this.date,
+      location: location ?? this.location,
+      provider: provider ?? this.provider,
+      providerId: providerId ?? this.providerId,
+      serviceId: serviceId ?? this.serviceId,
+      isCurrentBooking: isCurrentBooking ?? this.isCurrentBooking,
+    );
+  }
+}

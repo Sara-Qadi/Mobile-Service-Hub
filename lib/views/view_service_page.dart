@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_service_hub/views/booking_form_view.dart';
 import 'package:provider/provider.dart';
 import '../modelRaghad/rating.dart';
 import '../repository/view_rating_repository.dart';
-import '../screen/Bookingform.dart';
 import '../widgets/detail_card_widget.dart';
 import '../widgets/rating_card_widget.dart';
 import '../widgets/service_image_widget.dart';
@@ -88,7 +88,6 @@ class _ViewServicePageState extends State<ViewServicePage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (isWideScreen) {
-            // تصميم أفقي للويب والشاشات الواسعة
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -170,7 +169,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => BookingForm(
+                                builder: (context) => BookingFormView(
                                   service: {
                                     'id': service['id'],
                                     'name': service['name'],
@@ -188,7 +187,6 @@ class _ViewServicePageState extends State<ViewServicePage> {
 
                   const SizedBox(width: 32),
 
-                  // الجهة اليمنى: تفاصيل الخدمة والتقييمات
                   Flexible(
                     flex: 6,
                     child: Column(
@@ -222,7 +220,6 @@ class _ViewServicePageState extends State<ViewServicePage> {
               ),
             );
           } else {
-            // تصميم عمودي للهواتف والشاشات الصغيرة
             return SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -274,7 +271,7 @@ class _ViewServicePageState extends State<ViewServicePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => BookingForm(
+                            builder: (context) => BookingFormView(
                               service: {
                                 'id': service['id'],
                                 'name': service['name'],

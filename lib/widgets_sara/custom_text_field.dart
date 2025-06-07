@@ -1,4 +1,3 @@
-// File: widgets/custom_text_field.dart
 
 import 'package:flutter/material.dart';
 
@@ -7,7 +6,7 @@ class CustomTextField extends StatelessWidget {
   final String label;
   final String hint;
   final bool obscureText;
-  final bool readOnly; // ✅ Add this
+  final bool readOnly; 
   final Widget? suffixIcon;
   final void Function(String)? onChanged;
   final TextInputType? keyboardType;

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:mobile_service_hub/screen/Bookingtimestableview.dart';
-import 'package:mobile_service_hub/screen/ProviderClientsTableView.dart';
 import 'package:mobile_service_hub/screen/admin_notification.dart';
 import 'package:mobile_service_hub/screen/customer_notification.dart';
 import 'package:mobile_service_hub/screen/provider_notification.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
 import 'package:mobile_service_hub/screens/customer_profile.dart';
 import 'package:mobile_service_hub/views/services_display_page.dart';
+import '../views/booking_times_table_view.dart';
+import '../views/client_view.dart';
 import '/views/services_page.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -58,19 +58,25 @@ class _BottomNavBarState extends State<BottomNavBar> {
         return FirebaseFirestore.instance
             .collection('notifications')
             .where('providerId', isEqualTo: _userId)
+            .where('receiver', isEqualTo: 'Provider')
             .where('isRead', isEqualTo: false)
             .snapshots();
-      } else if (_userRole == 'Customer') {
+      } 
+else if (_userRole == 'Customer') {
         return FirebaseFirestore.instance
             .collection('notifications')
-            .where('clientId', isEqualTo: _userId)
-            .where('isRead', isEqualTo: false)
+  .where('clientId', isEqualTo: _userId)
+     .where('notificationFor', isEqualTo: "client")
+.where('isRead', isEqualTo: false)
+
+
             .snapshots();
-      } else if (_userRole == 'Admin') {
+      } 
+else if (_userRole == 'Admin') {
         return FirebaseFirestore.instance
             .collection('notifications')
-            .where('recipientRole', isEqualTo: 'Admin') 
-            .where('isRead', isEqualTo: false)
+            .where('status', isEqualTo: "unread")
+           
             .snapshots();
       } else {
         return const Stream.empty();
@@ -150,10 +156,14 @@ class _BottomNavBarState extends State<BottomNavBar> {
                       MaterialPageRoute(builder: (context) => EnhancedProviderClientsTableView()),
                     );
                   } else {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => BookingTimesTableView(bookingData: {})),
-                    );
+                    Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => BookingTimesTableView(
+      bookingData: {'id': 'your_booking_id'},
+    ),
+  ),
+);
                   }
                   break;
 

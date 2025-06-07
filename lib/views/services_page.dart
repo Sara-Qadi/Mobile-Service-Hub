@@ -87,10 +87,8 @@ class _ServicesPageState extends State<ServicesPage> {
                 bool isWideScreen = constraints.maxWidth > 600;
 
                 if (isWideScreen) {
-                  // تخطيط عريض للويب
                   return Row(
                     children: [
-                      // كارد الإضافة على اليسار
                       Container(
                         width: 300,
                         padding: EdgeInsets.all(12),
@@ -111,7 +109,6 @@ class _ServicesPageState extends State<ServicesPage> {
                           },
                         ),
                       ),
-                      // كروت الخدمات على اليمين
                       Expanded(
                         child: GridView.builder(
                           padding: EdgeInsets.all(12),
@@ -156,7 +153,6 @@ class _ServicesPageState extends State<ServicesPage> {
                     ],
                   );
                 } else {
-                  // تخطيط الهاتف العادي
                   return GridView.builder(
                     padding: EdgeInsets.all(12),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

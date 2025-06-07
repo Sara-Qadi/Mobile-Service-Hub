@@ -1,4 +1,3 @@
-// rating_details_card.dart
 import 'package:flutter/material.dart';
 
 class RatingDetailsCard extends StatelessWidget {
