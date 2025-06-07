@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,18 +30,26 @@ class _AdminProfileScreenState extends State<AdminProfilePage> {
     _loadAdminProfile();
   }
 
-  Future<void> _loadAdminProfile() async {
-    final profile = await _controller.fetchAdminProfile();
-    if (mounted) {
-      setState(() {
-        _admin = profile;
-        if (profile?.profileImageBase64 != null) {
-          _profileImageBytes = Uint8List.fromList(List<int>.from(profile!.profileImageBase64!.codeUnits));
+Future<void> _loadAdminProfile() async {
+  final profile = await _controller.fetchAdminProfile();
+  if (mounted) {
+    setState(() {
+      _admin = profile;
+      if (profile?.profileImageBase64 != null) {
+        try {
+          _profileImageBytes = base64Decode(profile!.profileImageBase64!);
+        } catch (e) {
+          debugPrint("Failed to decode profile image: $e");
+          _profileImageBytes = null;
         }
-        _isLoading = false;
-      });
-    }
+      } else {
+        _profileImageBytes = null;
+      }
+      _isLoading = false;
+    });
   }
+}
+
 
   Future<void> _showEditDialog(String title, String field, String currentValue) async {
     String updatedValue = currentValue;
