@@ -1,13 +1,12 @@
 import 'dart:core';
 
 import 'package:flutter/cupertino.dart';
-import '../screens/role.dart';
-import '../screens/forgot_password.dart';
-import '../views/add_service_page.dart';
-import '../views/rating_page.dart';
-import '../views/services_display_page.dart';
-import '../views/update_service.dart';
-import '../views/view_service_page.dart';
+import '../views/rating/view_service_page.dart';
+import '../views/user_management/role.dart';
+import '../views/user_management/forgot_password.dart';
+import '../views/services/add_service_page.dart';
+import '../views/services/services_display_page.dart';
+import '../views/services/update_service.dart';
 
 
 

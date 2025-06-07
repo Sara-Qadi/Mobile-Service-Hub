@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:mobile_service_hub/firebase_options.dart';
-import 'package:mobile_service_hub/repository/RatingRepository.dart';
-import 'package:mobile_service_hub/repository/display_service_repository.dart';
-import 'package:mobile_service_hub/repository/update-service_repository.dart';
-import 'package:mobile_service_hub/repository/view_rating_repository.dart';
-import 'package:mobile_service_hub/routes/appRoutes.dart';
-import 'package:mobile_service_hub/screens/role.dart';
-import 'package:mobile_service_hub/views/services_page.dart';
+
 import 'package:provider/provider.dart';
 
-import 'package:mobile_service_hub/screens/login.dart';
-import 'package:mobile_service_hub/theme/app_colors.dart';
+
 
 
 import 'Firebase/ratingFirebase.dart';
+import 'firebase_options.dart';
+import 'repository/RatingRepository.dart';
 import 'repository/add-service_repository.dart';
+import 'repository/display_service_repository.dart';
+import 'repository/update-service_repository.dart';
+import 'repository/view_rating_repository.dart';
+import 'theme/app_colors.dart';
+import 'views/user_management/login.dart';
+import 'views/user_management/role.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

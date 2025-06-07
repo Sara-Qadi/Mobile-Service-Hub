@@ -1,7 +1,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/booking_confirmation_model.dart';
+import '../models/booking/booking_confirmation_model.dart';
 
 class BookingConfirmationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

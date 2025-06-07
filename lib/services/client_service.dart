@@ -1,7 +1,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/client_model.dart';
+import '../models/booking/client_model.dart';
 import '../services/notification_service.dart';
 
 class ClientService {
@@ -82,7 +82,6 @@ class ClientService {
       print('Error updating existing completed bookings: $e');
     }
   }
-
   Future<void> completeBooking(String bookingId) async {
   try {
     final docRef = _firestore.collection('bookingnow').doc(bookingId);

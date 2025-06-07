@@ -25,7 +25,7 @@ class NotificationService {
                 [
                   NotificationType.clientRequest,
                   NotificationType.booking_rejected,
-                  NotificationType.info,
+
                   NotificationType.bookingConfirmed,
                   NotificationType.bookingCancelled,
                   NotificationType.rating,
