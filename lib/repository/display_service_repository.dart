@@ -36,4 +36,17 @@ class ServiceRepository {
       return matchQuery && matchCategory;
     }).toList();
   }
+
+  Future<void> deleteService(String serviceId) async {
+    final ratingDocs = await _firestore
+        .collection('ratings')
+        .where('serviceId', isEqualTo: serviceId)
+        .get();
+
+    for (var doc in ratingDocs.docs) {
+      await doc.reference.delete();
+    }
+
+    await _firestore.collection('services').doc(serviceId).delete();
+  }
 }

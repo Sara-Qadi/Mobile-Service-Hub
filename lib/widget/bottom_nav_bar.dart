@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mobile_service_hub/screen/admin_notification.dart';
 import 'package:mobile_service_hub/screen/customer_notification.dart';
 import 'package:mobile_service_hub/screen/provider_notification.dart';
+import 'package:mobile_service_hub/screens/admin_profile.dart';
 import 'package:mobile_service_hub/screens/service_p_profile.dart';
 import 'package:mobile_service_hub/screens/customer_profile.dart';
 import 'package:mobile_service_hub/views/services_display_page.dart';
@@ -76,7 +77,7 @@ else if (_userRole == 'Admin') {
         return FirebaseFirestore.instance
             .collection('notifications')
             .where('status', isEqualTo: "unread")
-           
+
             .snapshots();
       } else {
         return const Stream.empty();
@@ -192,12 +193,19 @@ else if (_userRole == 'Admin') {
                       context,
                       MaterialPageRoute(builder: (context) => ServiceProviderProfile()),
                     );
-                  } else {
+                  } else if (_userRole == 'Customer'){
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => CustomerProfilePage()),
                     );
-                  }
+                    }
+                    else{
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AdminProfilePage()),
+                    );
+                    }
+                  
                   break;
               }
             }

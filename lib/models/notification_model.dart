@@ -9,12 +9,17 @@ enum NotificationType {
   clientRequest,
   approval,
   booking_rejected,
+
   bookingPendingConfirmation,
   bookingConfirmed,
   bookingCancelled,
   bookingCompleted,  
   rating, 
+
+  service_report, 
+
 }
+
 
 class NotificationModel {
   final String id;
@@ -128,6 +133,7 @@ class NotificationModel {
       case 'booking_rejected':
         notificationType = NotificationType.booking_rejected;
         break;
+
       case 'booking_pending_confirmation':
         notificationType = NotificationType.bookingPendingConfirmation;
         break;
@@ -148,6 +154,11 @@ class NotificationModel {
       default:
         notificationType = NotificationType.info;
         break;
+
+       case 'service_report':
+    notificationType = NotificationType.service_report; 
+    break;
+
     }
 
     
@@ -296,6 +307,7 @@ class NotificationModel {
       case NotificationType.booking_rejected:
         typeString = 'booking_rejected';
         break;
+
       case NotificationType.bookingPendingConfirmation:
         typeString = 'booking_pending_confirmation';
         break;
@@ -311,6 +323,10 @@ class NotificationModel {
       case NotificationType.rating:
         typeString = 'rating';
         break;
+
+        case NotificationType.service_report:
+    typeString = 'service_report'; 
+    break;
     }
 
     final Map<String, dynamic> firestoreData = {
