@@ -24,7 +24,7 @@ class ServiceFormField extends StatelessWidget {
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       textCapitalization:
-          isNumber ? TextCapitalization.none : TextCapitalization.words, 
+          isNumber ? TextCapitalization.none : TextCapitalization.sentences, 
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,

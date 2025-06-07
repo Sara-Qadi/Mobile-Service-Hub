@@ -51,7 +51,7 @@ class CreateAccountController extends ChangeNotifier {
       return 'Names must only contain letters';
     }
     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) return 'Invalid email';
-    if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(phone)) return 'Invalid phone number';
+    if (!RegExp(r'^\+?[0-9]{10,15}$').hasMatch(phone)) return 'Phone number must be at least 10 digits';
     if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$').hasMatch(password)) {
       return 'Password too weak';
     }
