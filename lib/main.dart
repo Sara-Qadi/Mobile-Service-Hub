@@ -7,6 +7,7 @@ import 'package:mobile_service_hub/repository/display_service_repository.dart';
 import 'package:mobile_service_hub/repository/update-service_repository.dart';
 import 'package:mobile_service_hub/repository/view_rating_repository.dart';
 import 'package:mobile_service_hub/routes/appRoutes.dart';
+import 'package:mobile_service_hub/screens/role.dart';
 import 'package:mobile_service_hub/views/services_page.dart';
 import 'package:provider/provider.dart';
 
@@ -96,6 +97,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home:  LoginScreen(),
+        routes: {
+  '/role-selection': (context) => RoleSelectionScreen(),
+},
+
        
       ),
     );

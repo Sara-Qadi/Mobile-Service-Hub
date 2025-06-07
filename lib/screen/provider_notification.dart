@@ -682,6 +682,7 @@ class _ProviderNotificationsScreenState extends State<ProviderNotificationsScree
       ),
     );
   }
+  
 
   @override
   Widget build(BuildContext context) {
