@@ -8,7 +8,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/profile/customer_profile_model.dart';
 import '../../views/user_management/login.dart';
 
-
 class CustomerProfileController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -24,6 +23,7 @@ class CustomerProfileController {
 
     final data = doc.data()!;
     final location = await _resolveLocation(data['location']);
+
     return CustomerProfile.fromFirestore(data, location);
   }
 
@@ -54,7 +54,7 @@ class CustomerProfileController {
     }
   }
 
-  Future<Uint8List?> updateProfileImage(ImageSource source) async {
+  Future<String?> updateProfileImage(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: source);
     if (picked != null) {
@@ -64,7 +64,7 @@ class CustomerProfileController {
       if (uid != null) {
         await _firestore.collection('users').doc(uid).update({'profileImage': encoded});
       }
-      return bytes;
+      return encoded;
     }
     return null;
   }
@@ -115,36 +115,35 @@ class CustomerProfileController {
       },
     );
   }
+
   Future<void> logout(BuildContext context) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text("Confirm Logout"),
-        content: const Text("Are you sure you want to log out?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Log Out"),
-          ),
-        ],
-      );
-    },
-  );
-
-  if (confirmed == true) {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Logout"),
+          content: const Text("Are you sure you want to log out?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Log Out"),
+            ),
+          ],
+        );
+      },
     );
+
+    if (confirmed == true) {
+      await FirebaseAuth.instance.signOut();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
-}
-
-
 }

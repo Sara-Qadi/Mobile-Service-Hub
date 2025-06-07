@@ -1,12 +1,13 @@
 import 'dart:typed_data';
+import 'dart:convert'; 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../controllers/profile/customer_profile_controller.dart';
 import '../../models/profile/customer_profile_model.dart';
 import '../../forms/customer_profile_form.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../user_management/reset_password.dart';
-
 
 class CustomerProfilePage extends StatefulWidget {
   const CustomerProfilePage({Key? key}) : super(key: key);
@@ -34,9 +35,11 @@ class _CustomerProfileScreenState extends State<CustomerProfilePage> {
       setState(() {
         _customer = profile;
         if (profile?.profileImageBase64 != null) {
-          _profileImageBytes = Uint8List.fromList(
-            List<int>.from(profile!.profileImageBase64!.codeUnits),
-          );
+          try {
+            _profileImageBytes = base64Decode(profile!.profileImageBase64!);
+          } catch (e) {
+            _profileImageBytes = null;
+          }
         }
         _isLoading = false;
       });
@@ -69,9 +72,15 @@ class _CustomerProfileScreenState extends State<CustomerProfilePage> {
   }
 
   void _pickProfileImage() async {
-    final pickedBytes = await _controller.updateProfileImage(ImageSource.gallery);
-    if (pickedBytes != null) {
-      setState(() => _profileImageBytes = pickedBytes);
+    final base64String = await _controller.updateProfileImage(ImageSource.gallery);
+    if (base64String != null) {
+      setState(() {
+        try {
+          _profileImageBytes = base64Decode(base64String);
+        } catch (e) {
+          _profileImageBytes = null;
+        }
+      });
     }
   }
 
@@ -87,66 +96,124 @@ class _CustomerProfileScreenState extends State<CustomerProfilePage> {
           : _customer == null
               ? const Center(child: Text("Profile not found."))
               : ListView(
-  padding: const EdgeInsets.all(20),
-  children: [
-    buildProfilePicture(
-      imageBytes: _profileImageBytes,
-      onEdit: _pickProfileImage,
-    ),
-    const SizedBox(height: 24),
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    buildProfilePicture(
+                      imageBytes: _profileImageBytes,
+                      onEdit: _pickProfileImage,
+                    ),
+                    const SizedBox(height: 24),
+                    buildProfileTile(
+                      icon: Icons.person,
+                      title: 'First Name',
+                      value: _customer!.firstName,
+                      onTap: () => _showEditDialog('First Name', 'firstName', _customer!.firstName),
+                    ),
+                    buildProfileTile(
+                      icon: Icons.person_outline,
+                      title: 'Last Name',
+                      value: _customer!.lastName,
+                      onTap: () => _showEditDialog('Last Name', 'lastName', _customer!.lastName),
+                    ),
+                    buildProfileTile(
+                      icon: Icons.phone,
+                      title: 'Phone',
+                      value: _customer!.phone,
+                      onTap: () => _showEditDialog('Phone', 'phone', _customer!.phone),
+                    ),
+                    buildProfileTile(
+                      icon: Icons.location_on,
+                      title: 'Location',
+                      value: _customer!.location,
+                      onTap: () => _showEditDialog('Location', 'location', _customer!.location),
+                    ),
+                    const SizedBox(height: 24),
+                    buildActionTile(
+                      icon: Icons.lock_reset,
+                      title: 'Reset Password',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ResetPasswordScreen(contact: ''),
+                          ),
+                        );
+                      },
+                    ),
+                    buildActionTile(
+                      icon: Icons.delete_forever,
+                      title: 'Delete Account',
+                      onTap: () => _controller.deleteAccount(context),
+                      iconColor: Colors.red,
+                      textColor: Colors.red,
+                    ),
+                    buildActionTile(
+                      icon: Icons.logout,
+                      title: 'Log Out',
+                      onTap: () => _controller.logout(context),
+                    ),
+                  ],
+                ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+    );
+  }
 
-    buildProfileTile(
-      icon: Icons.person,
-      title: 'First Name',
-      value: _customer!.firstName,
-      onTap: () => _showEditDialog('First Name', 'firstName', _customer!.firstName),
-    ),
-    buildProfileTile(
-      icon: Icons.person_outline,
-      title: 'Last Name',
-      value: _customer!.lastName,
-      onTap: () => _showEditDialog('Last Name', 'lastName', _customer!.lastName),
-    ),
-    buildProfileTile(
-      icon: Icons.phone,
-      title: 'Phone',
-      value: _customer!.phone,
-      onTap: () => _showEditDialog('Phone', 'phone', _customer!.phone),
-    ),
-  buildProfileTile(
-  icon: Icons.location_on,
-  title: 'Location',
-  value: _customer!.location,
-  onTap: () => _showEditDialog('Location', 'location', _customer!.location),
-),
+  Widget buildProfilePicture({
+    required Uint8List? imageBytes,
+    required VoidCallback onEdit,
+  }) {
+    return Center(
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          CircleAvatar(
+            radius: 60,
+            backgroundImage: imageBytes != null ? MemoryImage(imageBytes) : null,
+            child: imageBytes == null ? const Icon(Icons.person, size: 60) : null,
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: onEdit,
+              child: const CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.black,
+                child: Icon(Icons.edit, size: 20, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    const SizedBox(height: 24),
+  Widget buildProfileTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(value),
+      trailing: const Icon(Icons.edit),
+      onTap: onTap,
+    );
+  }
 
-    buildActionTile(
-      icon: Icons.lock_reset,
-      title: 'Reset Password',
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => const ResetPasswordScreen(contact: '',),
-        ));
-      },
-    ),
-    buildActionTile(
-      icon: Icons.delete_forever,
-      title: 'Delete Account',
-      onTap: () => _controller.deleteAccount(context),
-      iconColor: Colors.red,
-      textColor: Colors.red,
-    ),
-    buildActionTile(
-      icon: Icons.logout,
-      title: 'Log Out',
-      onTap: () => _controller.logout(context),
-    ),
-  ],
-),
-     bottomNavigationBar: const BottomNavBar(currentIndex: 3),
-
+  Widget buildActionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? textColor,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor),
+      title: Text(title, style: TextStyle(color: textColor)),
+      onTap: onTap,
     );
   }
 }
