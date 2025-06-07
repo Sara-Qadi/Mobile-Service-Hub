@@ -151,13 +151,14 @@ class NotificationModel {
       case 'rating':
         notificationType = NotificationType.rating;
         break;
+               case 'service_report':
+    notificationType = NotificationType.service_report; 
+    break;
       default:
         notificationType = NotificationType.info;
         break;
 
-       case 'service_report':
-    notificationType = NotificationType.service_report; 
-    break;
+
 
     }
 

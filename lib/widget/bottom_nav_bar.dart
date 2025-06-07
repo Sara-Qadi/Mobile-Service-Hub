@@ -23,6 +23,7 @@ class BottomNavBar extends StatefulWidget {
 class _BottomNavBarState extends State<BottomNavBar> {
   String? _userRole;
   String? _userId;
+
   bool _isLoading = true;
 
   @override
@@ -44,6 +45,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
     setState(() {
       _userRole = doc.data()?['role'];
       _userId = user.uid;
+
       _isLoading = false;
     });
   }
@@ -59,7 +61,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         return FirebaseFirestore.instance
             .collection('notifications')
             .where('providerId', isEqualTo: _userId)
-            .where('receiver', isEqualTo: 'Provider')
+                .where('notificationFor', isEqualTo: "provider")
             .where('isRead', isEqualTo: false)
             .snapshots();
       } 
@@ -158,13 +160,13 @@ else if (_userRole == 'Admin') {
                     );
                   } else {
                     Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => BookingTimesTableView(
-      bookingData: {'id': 'your_booking_id'},
-    ),
-  ),
-);
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BookingTimesTableView(
+                        bookingData: {'id': 'your_booking_id'},
+                      ),
+                    ),
+                  );
                   }
                   break;
 

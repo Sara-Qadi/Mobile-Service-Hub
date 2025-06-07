@@ -46,29 +46,31 @@ class BookingFormModel {
     };
   }
 
-  Map<String, dynamic> toNotificationData(String bookingId) {
-    return {
-      'title': 'New Booking Request',
-      'message': '$name requested a $serviceName service',
-      'time': FieldValue.serverTimestamp(),
-      'isRead': false,
-      'type': 'clientRequest',
-      'receiver': serviceProvider,
-      'providerId': providerId,
-      'bookingId': bookingId,
+Map<String, dynamic> toNotificationData(String bookingId) {
+  return {
+    'title': 'New Booking Request',
+    'message': '$name requested a $serviceName service',
+    'time': FieldValue.serverTimestamp(),
+    'isRead': false,
+    'type': 'clientRequest',
+    'notificationFor': 'provider',
+    'receiver': serviceProvider,
+    'providerId': providerId,
+    'bookingId': bookingId,
+    'clientId': clientId,
+    'clientData': {
+      'name': name,
+      'phone': phone,
+      'location': location,
+      'service': serviceName,
+      'date': date,
+      'time': time,
+      'notes': '',
       'clientId': clientId,
-      'clientData': {
-        'name': name,
-        'phone': phone,
-        'location': location,
-        'service': serviceName,
-        'date': date,
-        'time': time,
-        'notes': '',
-        'clientId': clientId,
-      },
-    };
-  }
+    },
+  };
+}
+
 
   bool isValid() {
     return name.isNotEmpty &&
