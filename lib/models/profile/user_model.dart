@@ -6,6 +6,7 @@ class UserModel {
   final String password;
   final String location;
   final String role;
+  final String? profileImage; 
 
   UserModel({
     required this.firstName,
@@ -15,6 +16,7 @@ class UserModel {
     required this.password,
     required this.location,
     required this.role,
+    this.profileImage,
   });
 
   Map<String, dynamic> toMap(String uid, double latitude, double longitude) {
@@ -32,6 +34,7 @@ class UserModel {
       'role': role,
       'status': role == 'Service Provider' ? 'pending' : 'approved',
       'createdAt': DateTime.now(),
+      if (profileImage != null) 'profileImage': profileImage,
     };
   }
 }
