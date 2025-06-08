@@ -1,4 +1,4 @@
-import '../../models_sara/rating.dart';
+import '../../models/rating.dart';
 
 
 class Service {
