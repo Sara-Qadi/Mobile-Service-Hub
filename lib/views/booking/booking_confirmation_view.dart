@@ -1,22 +1,17 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../controllers/booking/booking_confirmation_controller.dart';
-import '../../widgets/booking_widgets/booking_details_card.dart';
 import '../../widgets/bottom_nav_bar.dart';
+
 import 'booking_times_table_view.dart';
-
-
 class BookingConfirmationView extends StatefulWidget {
   final String name;
   final String location;
   final String time;
   final String date;
   final String service;
-  final String provider; 
+  final String provider;
   final String serviceId;
-
   const BookingConfirmationView({
     Key? key,
     required this.name,
@@ -27,24 +22,19 @@ class BookingConfirmationView extends StatefulWidget {
     required this.provider,
     required this.serviceId,
   }) : super(key: key);
-
   @override
   State<BookingConfirmationView> createState() => _BookingConfirmationViewState();
 }
-
 class _BookingConfirmationViewState extends State<BookingConfirmationView> {
   late BookingConfirmationController _controller;
-
   @override
   void initState() {
     super.initState();
     _controller = BookingConfirmationController();
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeBooking();
     });
   }
-
   Future<void> _initializeBooking() async {
     await _controller.initializeBooking(
       name: widget.name,
@@ -56,13 +46,11 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       serviceId: widget.serviceId,
     );
   }
-
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
@@ -78,18 +66,15 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       ),
     );
   }
-
   PreferredSizeWidget _buildAppBar(BookingConfirmationController controller) {
     String title = 'Booking';
     Color backgroundColor = Colors.teal;
     Color foregroundColor = Colors.white;
     bool centerTitle = false;
-
     if (!controller.isLoading && !controller.hasError) {
       title = 'Booking Confirmed';
       centerTitle = true;
     }
-
     return AppBar(
       title: Text(
         title,
@@ -103,19 +88,15 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       centerTitle: centerTitle,
     );
   }
-
   Widget _buildBody(BookingConfirmationController controller) {
     if (controller.isLoading) {
       return _buildLoadingState();
     }
-
     if (controller.hasError) {
       return _buildErrorState(controller);
     }
-
     return _buildSuccessState(controller);
   }
-
   Widget _buildLoadingState() {
     return Center(
       child: Column(
@@ -130,7 +111,6 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       ),
     );
   }
-
   Widget _buildErrorState(BookingConfirmationController controller) {
     return Center(
       child: Column(
@@ -164,10 +144,14 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       ),
     );
   }
-
   Widget _buildSuccessState(BookingConfirmationController controller) {
     final bookingData = controller.getDisplayData();
-
+    final filteredData = Map<String, String>.from(bookingData);
+    filteredData.removeWhere((key, value) =>
+      key.toLowerCase() == 'serviceid' ||
+      key.toLowerCase() == 'id' ||
+      key.toLowerCase() == 'providerid'
+    );
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -176,26 +160,99 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
           children: [
             _buildSuccessIcon(),
             const SizedBox(height: 20),
-            
             _buildSuccessTitle(),
             const SizedBox(height: 16),
-            
             _buildSuccessSubtitle(),
             const SizedBox(height: 30),
-            
-            BookingDetailsCard(
-              bookingData: bookingData,
-              title: 'Booking Information',
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(horizontal: 0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.teal,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Booking Information',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ...filteredData.entries.map((entry) =>
+                      _buildInfoRow(entry.key, entry.value)
+                    ).toList(),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 30),
-            
-            _buildActionButton(bookingData),
-          ],
+            _buildActionButton(bookingData), 
+            ],
         ),
       ),
     );
   }
-
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildSuccessIcon() {
     return Container(
       width: 100,
@@ -203,6 +260,14 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       decoration: BoxDecoration(
         color: Colors.green.shade100,
         shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Icon(
         Icons.check_circle,
@@ -211,7 +276,6 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       ),
     );
   }
-
   Widget _buildSuccessTitle() {
     return const Text(
       'Your Booking is Confirmed!',
@@ -223,7 +287,6 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       textAlign: TextAlign.center,
     );
   }
-
   Widget _buildSuccessSubtitle() {
     return const Text(
       'Thank you for trusting us with your service needs',
@@ -234,13 +297,19 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
       textAlign: TextAlign.center,
     );
   }
-
   Widget _buildActionButton(Map<String, String> bookingData) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.view_list),
-        label: const Text('View All Bookings'),
+         height: 56,
+        child: ElevatedButton.icon(
+        icon: const Icon(Icons.view_list, size: 20),
+        label: const Text(
+          'View All Bookings',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         onPressed: () {
           Navigator.push(
             context,
@@ -254,12 +323,25 @@ class _BookingConfirmationViewState extends State<BookingConfirmationView> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.teal,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          elevation: 2,
+          shadowColor: Colors.teal.withOpacity(0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+

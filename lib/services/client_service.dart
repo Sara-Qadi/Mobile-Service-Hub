@@ -109,7 +109,7 @@ class ClientService {
         await _notificationService.sendNotificationToClient(
           clientId: clientId,
           title: 'Service Completed Successfully',
-          message: 'Your "$serviceName" booking has been completed. Thank you for trying our service and trusting us!',
+          message: 'Your "$serviceName" booking has been completed. You can now rate us!',
           type: 'success'
         );
       }
