@@ -14,7 +14,9 @@ import 'repository/add-service_repository.dart';
 import 'repository/display_service_repository.dart';
 import 'repository/update-service_repository.dart';
 import 'repository/view_rating_repository.dart';
+import 'routes/appRoutes.dart';
 import 'theme/app_colors.dart';
+import 'views/user_management/forgot_password.dart';
 import 'views/user_management/login.dart';
 import 'views/user_management/role.dart';
 
@@ -99,6 +101,7 @@ class MyApp extends StatelessWidget {
         home:  LoginScreen(),
         routes: {
   '/role-selection': (context) => RoleSelectionScreen(),
+    '/forgot-password': (context) =>  ForgotPasswordScreen(),
 },
 
        
