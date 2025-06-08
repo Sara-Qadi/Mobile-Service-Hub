@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LoginController extends ChangeNotifier {
   bool rememberMe = false;
   bool isLoading = false;
+  bool attemptedLogin = false;
+
 
   bool emailErrorVisible = false;
   bool passwordErrorVisible = false;
@@ -18,12 +20,16 @@ class LoginController extends ChangeNotifier {
 
   bool isValidPassword(String password) => password.length >= 6;
 
-  void updateButtonState(String email, String password) {
+void updateButtonState(String email, String password) {
+  if (attemptedLogin) {
     emailErrorVisible = !isValidEmail(email);
     passwordErrorVisible = !isValidPassword(password);
-    isLoginEnabled = !emailErrorVisible && !passwordErrorVisible;
-    notifyListeners();
   }
+
+  isLoginEnabled = isValidEmail(email) && isValidPassword(password);
+  notifyListeners();
+}
+
 
   Future<Map<String, dynamic>> loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,63 +47,56 @@ class LoginController extends ChangeNotifier {
   }
 
   Future<String?> login({
-    required String email,
-    required String password,
-  }) async {
-    if (!isValidEmail(email)) {
-  emailErrorVisible = true;
-  passwordErrorVisible = false;
+  required String email,
+  required String password,
+}) async {
+  attemptedLogin = true;
+  emailErrorVisible = !isValidEmail(email);
+  passwordErrorVisible = !isValidPassword(password);
+
+  if (emailErrorVisible || passwordErrorVisible) {
+    notifyListeners();
+    return 'Please fix the errors in the form.';
+  }
+
+  isLoading = true;
   notifyListeners();
-  return 'Please enter a valid email address.';
-}
 
-if (!isValidPassword(password)) {
-  emailErrorVisible = false;
-  passwordErrorVisible = true;
-  notifyListeners();
-  return 'Password must be at least 6 characters.';
-}
+  try {
+    final userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
 
+    final result = await handleUserNavigation(
+        userCredential.user, rememberMe, email, password);
 
-    isLoading = true;
+    isLoading = false;
     notifyListeners();
 
-    try {
-      final userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+    return result;
+  } on FirebaseAuthException catch (e) {
+    isLoading = false;
+    notifyListeners();
 
-      final result = await handleUserNavigation(userCredential.user, rememberMe, email, password);
-
-      isLoading = false;
-      notifyListeners();
-
-      return result; 
-    } on FirebaseAuthException catch (e) {
-      isLoading = false;
-      notifyListeners();
-
-   switch (e.code) {
-  case 'user-not-found':
-    return 'No account found for that email.';
-  case 'wrong-password':
-    return 'Incorrect password. Please try again.';
-  case 'invalid-email':
-    return 'The email address is not valid.';
-  case 'user-disabled':
-    return 'This account has been disabled.';
-case 'invalid-credential':
-  return 'Incorrect email or password.';
-
-  default:
-    return 'Login failed. ${e.message ?? 'Unknown error.'}';
-}
-
-    } catch (e) {
-      isLoading = false;
-      notifyListeners();
-      return 'Something went wrong. Please try again.';
+    switch (e.code) {
+      case 'user-not-found':
+        return 'No account found for that email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'invalid-credential':
+        return 'Incorrect email or password.';
+      default:
+        return 'Login failed. ${e.message ?? 'Unknown error.'}';
     }
+  } catch (e) {
+    isLoading = false;
+    notifyListeners();
+    return 'Something went wrong. Please try again.';
   }
+}
 
   Future<String?> handleUserNavigation(User? user, bool rememberMe, String email, String password) async {
     if (user == null) return 'Login failed. Please try again.';

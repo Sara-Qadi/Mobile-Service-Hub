@@ -4,6 +4,7 @@ import '../controllers/user_management/login_controller.dart';
 import '../widgets/text_fields/login_text_field.dart';
 import '../theme/app_colors.dart';
 import '../routes/appRoutes.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 
 class LoginForm extends StatefulWidget {
@@ -103,15 +104,11 @@ class _LoginFormState extends State<LoginForm> {
 
   Widget buildHeader() {
   return Column(
-    children: const [
-      SizedBox(height: 115),
+    children:  [
+      SizedBox(height: 100.h),
       Center(child: Image(image: AssetImage('assets/images/logo.png'), height: 120)),
       SizedBox(height: 20),
-      Text(
-        'Welcome Back!',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-      SizedBox(height: 20),
+  
     ],
   );
 }
@@ -156,23 +153,23 @@ Widget buildForm() {
             },
             visualDensity: VisualDensity.compact,
           ),
-          const Text('Remember me', style: TextStyle(fontSize: 14)),
+           Text('Remember me', style: TextStyle(fontSize: 14.sp)),
         ],
       ),
-      const SizedBox(height: 10),
+       SizedBox(height: 10.h),
       c.isLoading
           ? const Center(child: CircularProgressIndicator())
           : ElevatedButton(
               style: ElevatedButton.styleFrom(
                 elevation: 6,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding:  EdgeInsets.symmetric(vertical: 16.h),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 backgroundColor: c.isLoginEnabled ? AppColors.primary : AppColors.disabled,
               ),
               onPressed: c.isLoginEnabled ? _onLoginPressed : null,
-              child: const Text(
+              child:  Text(
                 'Login',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.white),
               ),
             ),
     ],
@@ -188,15 +185,15 @@ Widget buildFooter() {
           onPressed: () {
             Navigator.pushNamed(context, AppRoutes.forgotPassword);
           },
-          child: const Text('Forgot Password?', style: TextStyle(fontSize: 14)),
+          child:  Text('Forgot Password?', style: TextStyle(fontSize: 14.sp)),
         ),
       ),
-      const SizedBox(height: 10),
+       SizedBox(height: 10.h),
       Row(
-        children: const [
+        children:  [
           Expanded(child: Divider()),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
+            padding: EdgeInsets.symmetric(horizontal: 10.h),
             child: Text("OR"),
           ),
           Expanded(child: Divider()),
@@ -244,13 +241,13 @@ Widget buildFooter() {
     final c = widget.controller;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding:  EdgeInsets.symmetric(horizontal: 24.0.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 115),
-          Center(child: Image.asset('assets/images/logo.png', height: 120)),
-          const SizedBox(height: 60),
+           SizedBox(height: 90.h),
+          Center(child: Image.asset('assets/images/logo.png', height: 120.h)),
+           SizedBox(height: 40.h),
           LoginTextField(
             controller: _emailController,
             labelText: "Email",
@@ -260,7 +257,7 @@ Widget buildFooter() {
             errorText: "Please enter a valid email address",
             onChanged: (_) => _updateButtonState(),
           ),
-          const SizedBox(height: 20),
+           SizedBox(height: 20.h),
           LoginTextField(
             controller: _passwordController,
             labelText: "Password",
@@ -286,7 +283,7 @@ Widget buildFooter() {
                     },
                     visualDensity: VisualDensity.compact,
                   ),
-                  const Text('Remember me', style: TextStyle(fontSize: 14)),
+                   Text('Remember me', style: TextStyle(fontSize: 13.sp)),
                 ],
               ),
               TextButton(
@@ -294,39 +291,39 @@ Widget buildFooter() {
               Navigator.pushNamed(context, AppRoutes.forgotPassword);
 
                 },
-                child: const Text('Forgot Password?', style: TextStyle(fontSize: 14)),
+                child:  Text('Forgot Password?', style: TextStyle(fontSize: 13.sp)),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+           SizedBox(height: 20.h),
           c.isLoading
               ? const Center(child: CircularProgressIndicator())
               : ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     elevation: 6,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding:  EdgeInsets.symmetric(vertical: 16.h),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     backgroundColor:
                         c.isLoginEnabled ? AppColors.primary : AppColors.disabled,
                   ),
                   onPressed: c.isLoginEnabled ? _onLoginPressed : null,
-                  child: const Text(
+                  child:  Text(
                     'Login',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ),
-          const SizedBox(height: 20),
+           SizedBox(height: 20.h),
           Row(
-            children: const [
+            children:  [
               Expanded(child: Divider()),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
+                padding: EdgeInsets.symmetric(horizontal: 10.h),
                 child: Text("OR"),
               ),
               Expanded(child: Divider()),
             ],
           ),
-          const SizedBox(height: 20),
+           SizedBox(height: 20.h),
           ElevatedButton.icon(
             icon: const Icon(Icons.g_mobiledata),
             label: const Text("Sign in with Gmail"),
@@ -337,7 +334,7 @@ Widget buildFooter() {
               minimumSize: const Size(double.infinity, 50),
             ),
           ),
-          const SizedBox(height: 30),
+           SizedBox(height: 20.h),
           Center(
             child: RichText(
               text: TextSpan(
